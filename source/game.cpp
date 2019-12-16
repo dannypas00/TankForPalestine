@@ -37,7 +37,7 @@ using namespace PP2;
 
 
 //Global performance timer
-#define REF_PERFORMANCE 65732 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 57575 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -117,6 +117,7 @@ void Game::Shutdown() {
 Tank &Game::FindClosestEnemy(Tank &current_tank) {
     float closest_distance = numeric_limits<float>::infinity();
     int closest_index = 0;
+
 
     for (int i = 0; i < tanks.size(); i++) {
         if (tanks.at(i).allignment != current_tank.allignment && tanks.at(i).active) {

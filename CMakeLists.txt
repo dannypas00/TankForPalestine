@@ -5,9 +5,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include(FeatureSummary)
 include(pmm)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_USE_RELATIVE_PATHS OFF)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 
 
 pmm(CONAN REMOTES OGRE-dependencies https://api.bintray.com/conan/anotherfoxguy/OGRE-dependencies BINCRAFTERS
@@ -18,6 +16,10 @@ find_package(OpenGL REQUIRED)
 
 # AVX2 support (Intel Haswell and higher)
 #set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-mavx2")
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_USE_RELATIVE_PATHS OFF)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_subdirectory(source)
 
