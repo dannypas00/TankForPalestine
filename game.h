@@ -18,6 +18,10 @@ class Game
     void Draw();
     void Tick(float deltaTime);
     void insertion_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end);
+    void quick_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end);
+    int partition(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end);
+
+
     void MeasurePerformance();
     void ParallelTankSpawn(size_t, float, float, float, float, float, uint, uint);
 
