@@ -4,6 +4,7 @@
 #include <iostream>
 #include <array>
 #include <sstream>
+#include "quicksort.h"
 
 #define NUM_TANKS_BLUE 1279
 #define NUM_TANKS_RED 1279
@@ -25,8 +26,9 @@
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE NICKPC: 42940.1
 //REF_PERFORMANCE DANNY: 60245.9
+//REF_PERFORMANCE DANNY WERK: 72112
 
-#define REF_PERFORMANCE 42940.1 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 72112 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -272,7 +274,7 @@ void Game::Draw()
 
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
         std::vector<const Tank*> sorted_tanks;
-        insertion_sort_tanks_health(tanks, sorted_tanks, begin, begin + NUM_TANKS);
+        Quicksort::quick_sort_tanks(tanks, sorted_tanks, begin, begin + NUM_TANKS);
 
         for (int i = 0; i < NUM_TANKS; i++)
         {
@@ -290,83 +292,34 @@ void Game::Draw()
 // -----------------------------------------------------------
 // Sort tanks by health value using insertion sort
 // -----------------------------------------------------------
-void Tmpl8::Game::insertion_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end)
-{
-    const UINT16 NUM_TANKS = end - begin;
-    sorted_tanks.reserve(NUM_TANKS);
-    sorted_tanks.emplace_back(&original.at(begin));
-
-    for (int i = begin + 1; i < (begin + NUM_TANKS); i++)
-    {
-        const Tank& current_tank = original.at(i);
-
-        for (int s = (int)sorted_tanks.size() - 1; s >= 0; s--)
-        {
-            const Tank* current_checking_tank = sorted_tanks.at(s);
-
-            if ((current_checking_tank->CompareHealth(current_tank) <= 0))
-            {
-                sorted_tanks.insert(1 + sorted_tanks.begin() + s, &current_tank);
-                break;
-            }
-
-            if (s == 0)
-            {
-                sorted_tanks.insert(sorted_tanks.begin(), &current_tank);
-                break;
-            }
-        }
-    }
-}
-
-//UNDER DEVELOPMENT
-void Tmpl8::Game::quick_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end) {
-    const UINT16 NUM_TANKS = end - begin;
-    sorted_tanks.reserve(NUM_TANKS);
-    sorted_tanks.emplace_back(&original.at(begin));
-
-    UINT16 temp;
-    if (begin < end) {
-        temp = partition(original, sorted_tanks, begin, end);
-        quick_sort_tanks_health(original, sorted_tanks, begin, temp - 1);
-        quick_sort_tanks_health(original, sorted_tanks, temp + 1, end);
-    }
-}
-
-//https://www.thecrazyprogrammer.com/2016/11/program-for-quick-sort-c.html
-//UNDER DEVELOPMENT
-int Tmpl8::Game::partition(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end) {
-    UINT16 i, j;
-    const Tank& current_tank = original.begin;
-    const Tank& temp_tank = original.begin;
-    i = begin;
-    j = end + 1;
-
-    do
-    {
-        do
-        {
-            i++;
-        } while (original.at(i) < current_tank && i <= end);
-
-        do
-        {
-            j--;
-        } while (current_tank < original.at(j));
-
-        if(i < j)
-        {
-            temp_tank = original.at(i);
-            original[i] = original.at(j);
-            original[j] = temp_tank;
-        }
-    } while (i < j);
-
-    original[begin] = original.at(j);
-    original.at(j) = current_tank;
-
-    return(j);
-}
+//void Tmpl8::Game::insertion_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end)
+//{
+//    const UINT16 NUM_TANKS = end - begin;
+//    sorted_tanks.reserve(NUM_TANKS);
+//    sorted_tanks.emplace_back(&original.at(begin));
+//
+//    for (int i = begin + 1; i < (begin + NUM_TANKS); i++)
+//    {
+//        const Tank& current_tank = original.at(i);
+//
+//        for (int s = (int)sorted_tanks.size() - 1; s >= 0; s--)
+//        {
+//            const Tank* current_checking_tank = sorted_tanks.at(s);
+//
+//            if ((current_checking_tank->CompareHealth(current_tank) <= 0))
+//            {
+//                sorted_tanks.insert(1 + sorted_tanks.begin() + s, &current_tank);
+//                break;
+//            }
+//
+//            if (s == 0)
+//            {
+//                sorted_tanks.insert(sorted_tanks.begin(), &current_tank);
+//                break;
+//            }
+//        }
+//    }
+//}
 
 // -----------------------------------------------------------
 // When we reach MAX_FRAMES print the duration and speedup multiplier
