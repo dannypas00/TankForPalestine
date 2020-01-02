@@ -1,9 +1,9 @@
 #include "precomp.h" // include (only) this in every .cpp file
-#include <windows.h>
-#include <ppl.h>
-#include <iostream>
 #include <array>
+#include <iostream>
+#include <ppl.h>
 #include <sstream>
+#include <windows.h>
 
 #define NUM_TANKS_BLUE 1279
 #define NUM_TANKS_RED 1279
@@ -24,7 +24,8 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 51108.7 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+//REF_PERFORMANCE DANNY WERK: 85106.5
+#define REF_PERFORMANCE 85106.5 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
