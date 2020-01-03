@@ -1,10 +1,10 @@
 #include "precomp.h" // include (only) this in every .cpp file
-#include <windows.h>
-#include <ppl.h>
-#include <iostream>
-#include <array>
-#include <sstream>
 #include "quicksort.h"
+#include <array>
+#include <iostream>
+#include <ppl.h>
+#include <sstream>
+#include <windows.h>
 
 #define NUM_TANKS_BLUE 1279
 #define NUM_TANKS_RED 1279
@@ -273,8 +273,10 @@ void Game::Draw()
         const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
 
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
-        std::vector<const Tank*> sorted_tanks;
-        Quicksort::quick_sort_tanks(tanks, sorted_tanks, begin, begin + NUM_TANKS);
+        //std::vector<const Tank*> sorted_tanks;
+        Quicksort::quick_sort_tanks(tanks, begin, begin + NUM_TANKS);
+        //sorted_tanks.reserve(NUM_TANKS);
+        //sorted_tanks.emplace_back(tanks);
 
         for (int i = 0; i < NUM_TANKS; i++)
         {
@@ -284,7 +286,7 @@ void Game::Draw()
             int health_bar_end_y = (t < 1) ? HEALTH_BAR_HEIGHT : SCRHEIGHT - 1;
 
             screen->Bar(health_bar_start_x, health_bar_start_y, health_bar_end_x, health_bar_end_y, REDMASK);
-            screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted_tanks.at(i)->health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
+            //screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted_tanks.at(i)->health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
         }
     }
 }
