@@ -22,6 +22,8 @@ class Game
 
     Tank& FindClosestEnemy(Tank& current_tank);
 
+    Tank& FindClosestEnemyParallel(Tank& current_tank);
+
     void MouseUp(int button)
     { /* implement if you want to detect mouse button presses */
     }
