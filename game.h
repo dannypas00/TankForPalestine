@@ -55,6 +55,7 @@ class Game
     vector<Smoke> smokes;
     vector<Explosion> explosions;
     vector<Particle_beam> particle_beams;
+    vector<Tank*> sorted;
 
     Font* frame_count_font;
     long long frame_count = 0;
