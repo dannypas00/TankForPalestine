@@ -86,7 +86,7 @@ using namespace Tmpl8;
 #include "smoke.h"
 #include "explosion.h"
 #include "particle_beam.h"
-
+#include "mergesort.h"
 #include "game.h"
 
 // clang-format on
