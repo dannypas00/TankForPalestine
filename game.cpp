@@ -126,6 +126,10 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
+void Game::CollisionCheck(std::vector<Tank> sorted) {
+
+}
+
 // -----------------------------------------------------------
 // Update the game state:
 // Move all objects
@@ -274,7 +278,8 @@ void Game::Draw()
     {
         const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
-        Mergesort::mergesort::sort(sorted, begin, begin + NUM_TANKS - 1);
+
+        Mergesort::mergesort::sortHealth(sorted, begin, begin + NUM_TANKS - 1);
 
         for (int i = 0; i < NUM_TANKS; i++)
         {

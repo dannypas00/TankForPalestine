@@ -23,6 +23,8 @@ class Game
 
     Tank& FindClosestEnemy(Tank& current_tank);
 
+    void CollisionCheck(std::vector<Tank> sorted);
+
     Tank& FindClosestEnemyParallel(Tank& current_tank);
 
     void MouseUp(int button)
