@@ -140,7 +140,7 @@ void Game::CollisionCheck(std::vector<Tank*> unsorted)
             vec2 dir = unsorted[i]->Get_Position() - unsorted[j]->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (unsorted[i]->Get_collision_radius() * unsorted[i]->Get_collision_radius()) + (unsorted[j]->Get_collision_radius() * unsorted[j]->Get_collision_radius());
+            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[j]->collision_radius * unsorted[j]->collision_radius);
 
             if (dirSquaredLen < colSquaredLen)
             {
@@ -153,7 +153,7 @@ void Game::CollisionCheck(std::vector<Tank*> unsorted)
             vec2 dir = unsorted[i]->Get_Position() - unsorted[k]->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (unsorted[i]->Get_collision_radius() * unsorted[i]->Get_collision_radius()) + (unsorted[k]->Get_collision_radius() * unsorted[k]->Get_collision_radius());
+            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
 
             if (dirSquaredLen < colSquaredLen)
             {
