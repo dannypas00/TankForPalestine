@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 51108.7 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -126,8 +126,42 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
-void Game::CollisionCheck(std::vector<Tank> sorted) {
+void Game::CollisionCheck(std::vector<Tank*> unsorted)
+{
+    Mergesort::mergesort::sortX(unsorted, 0, unsorted.size() - 1);
+    for (int i = 0; i < unsorted.size(); i++)
+    {
+        int x = unsorted[i]->position.x;
+        int y = unsorted[i]->position.y;
+        int j = i + 1;
+        int k = i - 1;
+        while (j < unsorted.size() && unsorted[j]->position.x < x + (2 * unsorted[j]->collision_radius))
+        {
+            vec2 dir = unsorted[i]->Get_Position() - unsorted[j]->Get_Position();
+            float dirSquaredLen = dir.sqrLength();
 
+            float colSquaredLen = (unsorted[i]->Get_collision_radius() * unsorted[i]->Get_collision_radius()) + (unsorted[j]->Get_collision_radius() * unsorted[j]->Get_collision_radius());
+
+            if (dirSquaredLen < colSquaredLen)
+            {
+                unsorted[i]->Push(dir.normalized(), 1.f);
+            }
+            j++;
+        }
+        while (k > 0 && unsorted[k]->position.x < x + (2 * unsorted[k]->collision_radius))
+        {
+            vec2 dir = unsorted[i]->Get_Position() - unsorted[k]->Get_Position();
+            float dirSquaredLen = dir.sqrLength();
+
+            float colSquaredLen = (unsorted[i]->Get_collision_radius() * unsorted[i]->Get_collision_radius()) + (unsorted[k]->Get_collision_radius() * unsorted[k]->Get_collision_radius());
+
+            if (dirSquaredLen < colSquaredLen)
+            {
+                unsorted[i]->Push(dir.normalized(), 1.f);
+            }
+            k--;
+        }
+    }
 }
 
 // -----------------------------------------------------------
@@ -139,27 +173,13 @@ void Game::CollisionCheck(std::vector<Tank> sorted) {
 // -----------------------------------------------------------
 void Game::Update(float deltaTime)
 {
+    std::vector<Tank*> unsorted;
     //Update tanks
     for (Tank& tank : tanks)
     {
         if (tank.active)
         {
-            //Check tank collision and nudge tanks away from each other
-            for (Tank& oTank : tanks)
-            {
-                if (&tank == &oTank) continue;
-
-                vec2 dir = tank.Get_Position() - oTank.Get_Position();
-                float dirSquaredLen = dir.sqrLength();
-
-                float colSquaredLen = (tank.Get_collision_radius() * tank.Get_collision_radius()) + (oTank.Get_collision_radius() * oTank.Get_collision_radius());
-
-                if (dirSquaredLen < colSquaredLen)
-                {
-                    tank.Push(dir.normalized(), 1.f);
-                }
-            }
-
+            unsorted.push_back(&tank);
             //Move tanks according to speed and nudges (see above) also reload
             tank.Tick();
 
@@ -174,6 +194,7 @@ void Game::Update(float deltaTime)
             }
         }
     }
+    CollisionCheck(unsorted);
 
     //Update smoke plumes
     for (Smoke& smoke : smokes)
@@ -289,7 +310,7 @@ void Game::Draw()
             int health_bar_end_y = (t < 1) ? HEALTH_BAR_HEIGHT : SCRHEIGHT - 1;
 
             screen->Bar(health_bar_start_x, health_bar_start_y, health_bar_end_x, health_bar_end_y, REDMASK);
-            screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted[begin + i] -> health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
+            screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted[begin + i]->health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
         }
     }
 }
