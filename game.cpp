@@ -267,14 +267,9 @@ void Game::Draw()
     for (int t = 0; t < 2; t++)
     {
         const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
-
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
-        //std::vector<Tank>& sorted_tanks = tanks;
-        /*for (Tank i : tanks) {
-            sorted_tanks.push_back(i);
-        }*/
 
-        vector<Tank> sorted = tanks;
+        vector<Tank>& sorted = tanks;
         Mergesort::mergesort::sort(sorted, begin, begin + NUM_TANKS - 1);
 
         for (int i = 0; i < NUM_TANKS; i++)
@@ -285,7 +280,7 @@ void Game::Draw()
             int health_bar_end_y = (t < 1) ? HEALTH_BAR_HEIGHT : SCRHEIGHT - 1;
 
             screen->Bar(health_bar_start_x, health_bar_start_y, health_bar_end_x, health_bar_end_y, REDMASK);
-            screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted[i].health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
+            screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted[begin + i].health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
         }
     }
 }

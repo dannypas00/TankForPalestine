@@ -5,12 +5,11 @@ using namespace Tmpl8;
 
 namespace Mergesort
 {
+
 void mergesort::merge(std::vector<Tank>& original, UINT16 l, UINT16 m, UINT16 r)
 {
-    //counters and split left and right
     UINT16 low = m - l + 1;
     UINT16 high = r - m;
-
     std::vector<Tank> leftVector, rightVector;
     leftVector.reserve(low);
     rightVector.reserve(high);
