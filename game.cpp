@@ -1,9 +1,9 @@
 #include "precomp.h" // include (only) this in every .cpp file
-#include <windows.h>
-#include <ppl.h>
-#include <iostream>
 #include <array>
+#include <iostream>
+#include <ppl.h>
 #include <sstream>
+#include <windows.h>
 
 #define NUM_TANKS_BLUE 1279
 #define NUM_TANKS_RED 1279
@@ -120,8 +120,28 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
-void Game::CollisionCheck(std::vector<Tank> sorted) {
+void Game::CollisionCheck(std::vector<Tank*> unsorted)
+{
+    Mergesort::mergesort::sortX(unsorted, 0, unsorted.size());
+    for (int i = 0; i < unsorted.size(); i++)
+    {
+        int x = unsorted[i] -> position.x;
+        int y = unsorted[i] -> position.y;
+        int j = i + 1;
+        while (unsorted[j] -> position.x < x + (2 * tank -> collision_radius))
+        {
+            vec2 dir = tank.Get_Position() - unsorted[j].Get_Position();
+            float dirSquaredLen = dir.sqrLength();
 
+            float colSquaredLen = (tank.Get_collision_radius() * tank.Get_collision_radius()) + (oTank.Get_collision_radius() * oTank.Get_collision_radius());
+
+            if (dirSquaredLen < colSquaredLen)
+            {
+                tank.Push(dir.normalized(), 1.f);
+            }
+            j++;
+        }
+    }
 }
 
 // -----------------------------------------------------------
@@ -133,27 +153,13 @@ void Game::CollisionCheck(std::vector<Tank> sorted) {
 // -----------------------------------------------------------
 void Game::Update(float deltaTime)
 {
+    std::vector<Tank*> unsorted;
     //Update tanks
     for (Tank& tank : tanks)
     {
         if (tank.active)
         {
-            //Check tank collision and nudge tanks away from each other
-            for (Tank& oTank : tanks)
-            {
-                if (&tank == &oTank) continue;
-
-                vec2 dir = tank.Get_Position() - oTank.Get_Position();
-                float dirSquaredLen = dir.sqrLength();
-
-                float colSquaredLen = (tank.Get_collision_radius() * tank.Get_collision_radius()) + (oTank.Get_collision_radius() * oTank.Get_collision_radius());
-
-                if (dirSquaredLen < colSquaredLen)
-                {
-                    tank.Push(dir.normalized(), 1.f);
-                }
-            }
-
+            unsorted.push_back(&tank);
             //Move tanks according to speed and nudges (see above) also reload
             tank.Tick();
 
@@ -168,6 +174,7 @@ void Game::Update(float deltaTime)
             }
         }
     }
+    CollisionCheck(unsorted);
 
     //Update smoke plumes
     for (Smoke& smoke : smokes)

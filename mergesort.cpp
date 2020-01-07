@@ -57,11 +57,11 @@ void mergesort::mergeHealth(std::vector<Tank>& original, UINT16 l, UINT16 m, UIN
     }
 }
 
-void mergesort::mergeX(std::vector<Tank>& original, UINT16 l, UINT16 m, UINT16 r)
+void mergesort::mergeX(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 r)
 {
     UINT16 low = m - l + 1;
     UINT16 high = r - m;
-    std::vector<Tank> leftVector, rightVector;
+    std::vector<Tank*> leftVector, rightVector;
     leftVector.reserve(low);
     rightVector.reserve(high);
 
@@ -80,7 +80,7 @@ void mergesort::mergeX(std::vector<Tank>& original, UINT16 l, UINT16 m, UINT16 r
 
     while (i < low && j < high)
     {
-        if (leftVector[i].position.x <= rightVector[j].position.x)
+        if (leftVector[i] -> position.x <= rightVector[j] -> position.x)
         {
             original[k] = leftVector[i];
             i++;

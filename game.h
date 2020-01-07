@@ -23,7 +23,7 @@ class Game
 
     Tank& FindClosestEnemy(Tank& current_tank);
 
-    void CollisionCheck(std::vector<Tank> sorted);
+    void CollisionCheck(std::vector<Tank> unsorted);
 
     Tank& FindClosestEnemyParallel(Tank& current_tank);
 
