@@ -6,11 +6,11 @@ using namespace Tmpl8;
 namespace Mergesort
 {
 
-void mergesort::merge(std::vector<Tank>& original, UINT16 l, UINT16 m, UINT16 r)
+void mergesort::merge(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 r)
 {
     UINT16 low = m - l + 1;
     UINT16 high = r - m;
-    std::vector<Tank> leftVector, rightVector;
+    std::vector<Tank*> leftVector, rightVector;
     leftVector.reserve(low);
     rightVector.reserve(high);
 
@@ -29,7 +29,7 @@ void mergesort::merge(std::vector<Tank>& original, UINT16 l, UINT16 m, UINT16 r)
 
     while (i < low && j < high)
     {
-        if (leftVector[i].health <= rightVector[j].health)
+        if (leftVector[i] -> health <= rightVector[j] -> health)
         {
             original[k] = leftVector[i];
             i++;
@@ -57,7 +57,7 @@ void mergesort::merge(std::vector<Tank>& original, UINT16 l, UINT16 m, UINT16 r)
     }
 }
 
-void mergesort::sort(std::vector<Tank>& original, UINT16 l, UINT16 r)
+void mergesort::sort(std::vector<Tank*>& original, UINT16 l, UINT16 r)
 {
     if (l < r)
     {
