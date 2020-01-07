@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 42986.7 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -128,7 +128,7 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
 
 void Game::CollisionCheck(std::vector<Tank*> unsorted)
 {
-    Mergesort::mergesort::sortX(unsorted, 0, unsorted.size() - 1);
+    Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
     for (int i = 0; i < unsorted.size(); i++)
     {
         int x = unsorted[i]->position.x;
@@ -300,7 +300,9 @@ void Game::Draw()
         const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
 
-        Mergesort::mergesort::sortHealth(sorted, begin, begin + NUM_TANKS - 1);
+        //Mergesort::mergesort::sortHealth(sorted, begin, begin + NUM_TANKS - 1);
+        //Mergesort::mergesort::parHealthSort(sorted, begin, begin + NUM_TANKS - 1, 1);
+        Mergesort::mergesort::poolHealthSort(sorted, begin, begin + NUM_TANKS - 1, 1);
 
         for (int i = 0; i < NUM_TANKS; i++)
         {
