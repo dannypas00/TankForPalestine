@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 51108.7 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -128,22 +128,22 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
 
 void Game::CollisionCheck(std::vector<Tank*> unsorted)
 {
-    Mergesort::mergesort::sortX(unsorted, 0, unsorted.size());
+    Mergesort::mergesort::sortX(unsorted, 0, unsorted.size() - 1);
     for (int i = 0; i < unsorted.size(); i++)
     {
         int x = unsorted[i] -> position.x;
         int y = unsorted[i] -> position.y;
         int j = i + 1;
-        while (unsorted[j] -> position.x < x + (2 * tank -> collision_radius))
+        while (j < unsorted.size() && unsorted[j]->position.x < x + (2 * unsorted[j]->collision_radius))
         {
-            vec2 dir = tank.Get_Position() - unsorted[j].Get_Position();
+            vec2 dir = unsorted[i] -> Get_Position() - unsorted[j]->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (tank.Get_collision_radius() * tank.Get_collision_radius()) + (oTank.Get_collision_radius() * oTank.Get_collision_radius());
+            float colSquaredLen = (unsorted[i] -> Get_collision_radius() * unsorted[i] -> Get_collision_radius()) + (unsorted[j] -> Get_collision_radius() * unsorted[j] -> Get_collision_radius());
 
             if (dirSquaredLen < colSquaredLen)
             {
-                tank.Push(dir.normalized(), 1.f);
+                unsorted[i] -> Push(dir.normalized(), 1.f);
             }
             j++;
         }
