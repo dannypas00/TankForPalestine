@@ -57,6 +57,8 @@ class Game
     vector<Particle_beam> particle_beams;
     vector<Tank*> sorted;
     vector<Tank*> colsorted;
+    vector<Tank*> bluetanks;
+    vector<Tank*> redtanks;
 
     Font* frame_count_font;
     long long frame_count = 0;
