@@ -6,14 +6,17 @@
 #include <cmath>
 #include <chrono>
 
-#include "ThreadPool.h"
+//#include "ThreadPool.h"
+
+namespace
+{
+const unsigned int threadCount = thread::hardware_concurrency();
+
+ThreadPool pool(threadCount);
+}
 
 using namespace std::chrono;
 using namespace Tmpl8;
-
-const unsigned int threadCount = thread::hardware_concurrency() * 2;
-
-ThreadPool pool(threadCount);
 
 
 namespace Mergesort

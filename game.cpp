@@ -53,6 +53,13 @@ const static vec2 rocket_size(25, 24);
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
 
+namespace
+{
+const unsigned int threadCount = thread::hardware_concurrency();
+
+ThreadPool pool(threadCount);
+} // namespace
+
 //vector<Tank>& sorted;
 
 // -----------------------------------------------------------
@@ -126,38 +133,78 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
-void Game::CollisionCheck(std::vector<Tank*> unsorted)
+void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, int beginT, int endT)
 {
-    Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
-    for (int i = 0; i < unsorted.size(); i++)
+    std::vector<Tank*> stepTanks(&sortedTanks[beginT], &sortedTanks[endT]);
+    for (int i = 0; i < stepTanks.size(); i++)
     {
-        int x = unsorted[i]->position.x;
-        int y = unsorted[i]->position.y;
-        int j = i + 1;
-        int k = i - 1;
-        while (j < unsorted.size() && unsorted[j]->position.x < x + (2 * unsorted[j]->collision_radius))
+        int x = stepTanks.at(i)->position.x;
+        int y = stepTanks.at(i)->position.y;
+        int j = distance(&sortedTanks[beginT], std::find(&sortedTanks[beginT], &sortedTanks[endT], stepTanks.at(i))) + 1;
+        int k = distance(&sortedTanks[beginT], std::find(&sortedTanks[beginT], &sortedTanks[endT], stepTanks.at(i))) - 1;
+        float collision_radius = stepTanks.at(i)->collision_radius;
+
+        while (j < sortedTanks.size() && sortedTanks.at(j)->position.x < x + (2 * collision_radius))
         {
-            vec2 dir = unsorted[i]->Get_Position() - unsorted[j]->Get_Position();
+            vec2 dir = stepTanks.at(i)->Get_Position() - sortedTanks.at(j)->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[j]->collision_radius * unsorted[j]->collision_radius);
+            float colSquaredLen = (collision_radius * collision_radius * 2);
 
             if (dirSquaredLen < colSquaredLen)
             {
-                unsorted[i]->Push(dir.normalized(), 1.f);
+                stepTanks.at(i)->Push(dir.normalized(), 1.f);
+            }
+            j++;
+        }
+        while (k > 0 && sortedTanks.at(k)->position.x < x + (2 * collision_radius))
+        {
+            vec2 dir = stepTanks.at(i)->Get_Position() - sortedTanks.at(k)->Get_Position();
+            float dirSquaredLen = dir.sqrLength();
+
+            float colSquaredLen = (collision_radius * collision_radius + (collision_radius * collision_radius));
+
+            if (dirSquaredLen < colSquaredLen)
+            {
+                stepTanks.at(i)->Push(dir.normalized(), 1.f);
+            }
+            k--;
+        }
+    }
+}
+
+void Game::CollisionCheck(std::vector<Tank*> unsorted)
+{
+    for (int i = 0; i < unsorted.size(); i++)
+    {
+        int x = unsorted.at(i)->position.x;
+        int y = unsorted.at(i)->position.y;
+        int j = i + 1;
+        int k = i - 1;
+        while (j < unsorted.size() && unsorted.at(j)->position.x < x + (2 * unsorted.at(j)->collision_radius))
+        {
+
+            vec2 dir = unsorted.at(i)->Get_Position() - unsorted.at(j)->Get_Position();
+            float dirSquaredLen = dir.sqrLength();
+
+            float colSquaredLen = (unsorted.at(i)->collision_radius * unsorted.at(i)->collision_radius) + (unsorted.at(j)->collision_radius * unsorted.at(j)->collision_radius);
+
+            if (dirSquaredLen < colSquaredLen)
+            {
+                unsorted.at(i)->Push(dir.normalized(), 1.f);
             }
             j++;
         }
         while (k > 0 && unsorted[k]->position.x < x + (2 * unsorted[k]->collision_radius))
         {
-            vec2 dir = unsorted[i]->Get_Position() - unsorted[k]->Get_Position();
+            vec2 dir = unsorted.at(i)->Get_Position() - unsorted[k]->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
+            float colSquaredLen = (unsorted.at(i)->collision_radius * unsorted.at(i)->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
 
             if (dirSquaredLen < colSquaredLen)
             {
-                unsorted[i]->Push(dir.normalized(), 1.f);
+                unsorted.at(i)->Push(dir.normalized(), 1.f);
             }
             k--;
         }
@@ -173,6 +220,7 @@ void Game::CollisionCheck(std::vector<Tank*> unsorted)
 // -----------------------------------------------------------
 void Game::Update(float deltaTime)
 {
+    std::vector<future<void>> fut;
     std::vector<Tank*> unsorted;
     //Update tanks
     for (Tank& tank : tanks)
@@ -194,7 +242,15 @@ void Game::Update(float deltaTime)
             }
         }
     }
-    CollisionCheck(unsorted);
+    int step = unsorted.size() / threadCount;
+    Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
+    for (int i = 0; i < threadCount - 1; i++)
+    {
+        //fut.emplace_back(pool.enqueue([&] {
+            MassCollisionCheck(unsorted, step * i, (step * i) + step - 1);
+        //}));
+    }
+    //CollisionCheck(unsorted, fut);
 
     //Update smoke plumes
     for (Smoke& smoke : smokes)
@@ -229,22 +285,22 @@ void Game::Update(float deltaTime)
     rockets.erase(std::remove_if(rockets.begin(), rockets.end(), [](const Rocket& rocket) { return !rocket.active; }), rockets.end());
 
     //Update particle beams
-    for (Particle_beam& particle_beam : particle_beams)
-    {
-        particle_beam.tick(tanks);
+    //for (Particle_beam& particle_beam : particle_beams)
+    //{
+    //    particle_beam.tick(tanks);
 
-        //Damage all tanks within the damage window of the beam (the window is an axis-aligned bounding box)
-        for (Tank& tank : tanks)
-        {
-            if (tank.active && particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
-            {
-                if (tank.hit(particle_beam.damage))
-                {
-                    smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                }
-            }
-        }
-    }
+    //    //Damage all tanks within the damage window of the beam (the window is an axis-aligned bounding box)
+    //    for (Tank& tank : tanks)
+    //    {
+    //        if (tank.active && particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
+    //        {
+    //            if (tank.hit(particle_beam.damage))
+    //            {
+    //                smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+    //            }
+    //        }
+    //    }
+    //}
 
     //Update explosion sprites and remove when done with remove erase idiom
     for (Explosion& explosion : explosions)
