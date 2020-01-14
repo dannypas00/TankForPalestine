@@ -230,6 +230,13 @@ void Game::Update(float deltaTime)
 {
     std::vector<future<void>> fut;
     std::vector<Tank*> unsorted;
+
+    //Update rockets
+    for (Rocket& rocket : rockets)
+    {
+        rocket.Tick();
+    }
+
     //Update tanks
     for (Tank& tank : tanks)
     {
@@ -238,6 +245,21 @@ void Game::Update(float deltaTime)
             unsorted.push_back(&tank);
             //Move tanks according to speed and nudges (see above) also reload
             tank.Tick();
+
+            for (Rocket rocket : rockets)
+            {
+                if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank.collision_radius))
+                {
+                    explosions.push_back(Explosion(&explosion, tank.position));
+
+                    if (tank.hit(ROCKET_HIT_VALUE))
+                    {
+                        smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+                    }
+
+                    rocket.active = false;
+                }
+            }
 
             //Shoot at closest target if reloaded
             if (tank.Rocket_Reloaded())
@@ -265,29 +287,6 @@ void Game::Update(float deltaTime)
     for (Smoke& smoke : smokes)
     {
         smoke.Tick();
-    }
-
-    //Update rockets
-    for (Rocket& rocket : rockets)
-    {
-        rocket.Tick();
-
-        //Check if rocket collides with enemy tank, spawn explosion and if tank is destroyed spawn a smoke plume
-        for (Tank& tank : tanks)
-        {
-            if (tank.active && (tank.allignment != rocket.allignment) && rocket.Intersects(tank.position, tank.collision_radius))
-            {
-                explosions.push_back(Explosion(&explosion, tank.position));
-
-                if (tank.hit(ROCKET_HIT_VALUE))
-                {
-                    smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                }
-
-                rocket.active = false;
-                break;
-            }
-        }
     }
 
     //Remove exploded rockets with remove erase idiom
