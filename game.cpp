@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 51108.7 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -230,12 +230,8 @@ void Game::Update(float deltaTime)
 {
     std::vector<future<void>> fut;
     std::vector<Tank*> unsorted;
-
-    //Update rockets
-    for (Rocket& rocket : rockets)
-    {
-        rocket.Tick();
-    }
+    beamTick = false;
+    rocketTick = false;
 
     //Update tanks
     for (Tank& tank : tanks)
@@ -246,7 +242,7 @@ void Game::Update(float deltaTime)
             //Move tanks according to speed and nudges (see above) also reload
             tank.Tick();
 
-            for (Rocket rocket : rockets)
+            for (Rocket& rocket : rockets)
             {
                 if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank.collision_radius))
                 {
@@ -259,7 +255,30 @@ void Game::Update(float deltaTime)
 
                     rocket.active = false;
                 }
+                if (!rocketTick)
+                {
+                    rocket.Tick();
+                }
             }
+            if (!rocketTick)
+                rocketTick = true;
+
+            for (Particle_beam& particle_beam : particle_beams)
+            {
+                if (particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
+                {
+                    if (tank.hit(particle_beam.damage))
+                    {
+                        smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+                    }
+                }
+                if (!beamTick)
+                {
+                    particle_beam.tick(tanks);
+                }
+            }
+            if (!beamTick)
+                beamTick = true;
 
             //Shoot at closest target if reloaded
             if (tank.Rocket_Reloaded())
@@ -278,10 +297,14 @@ void Game::Update(float deltaTime)
     for (int i = 0; i < threadCount; i++)
     {
         fut.emplace_back(pool.enqueue([&] {
-            MassCollisionCheck(unsorted, step * i, (step * i) + step - 1);
+            int endIndex = (step * i) + step - 1;
+            if ((step * i) + step - 1 > unsorted.size() - 1)
+            {
+                endIndex = unsorted.size() - 1;
+            }
+            MassCollisionCheck(unsorted, step * i, endIndex);
         }));
     }
-    //CollisionCheck(unsorted, fut);
 
     //Update smoke plumes
     for (Smoke& smoke : smokes)
@@ -291,24 +314,6 @@ void Game::Update(float deltaTime)
 
     //Remove exploded rockets with remove erase idiom
     rockets.erase(std::remove_if(rockets.begin(), rockets.end(), [](const Rocket& rocket) { return !rocket.active; }), rockets.end());
-
-    //Update particle beams
-    for (Particle_beam& particle_beam : particle_beams)
-    {
-        particle_beam.tick(tanks);
-
-        //Damage all tanks within the damage window of the beam (the window is an axis-aligned bounding box)
-        for (Tank& tank : tanks)
-        {
-            if (tank.active && particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
-            {
-                if (tank.hit(particle_beam.damage))
-                {
-                    smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                }
-            }
-        }
-    }
 
     //Update explosion sprites and remove when done with remove erase idiom
     for (Explosion& explosion : explosions)
@@ -383,38 +388,6 @@ void Game::Draw()
         }
     }
 }
-
-// -----------------------------------------------------------
-// Sort tanks by health value using insertion sort
-// -----------------------------------------------------------
-//void Tmpl8::Game::insertion_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end)
-//{
-//    const UINT16 NUM_TANKS = end - begin;
-//    sorted_tanks.reserve(NUM_TANKS);
-//    sorted_tanks.emplace_back(&original.at(begin));
-//
-//    for (int i = begin + 1; i < (begin + NUM_TANKS); i++)
-//    {
-//        const Tank& current_tank = original.at(i);
-//
-//        for (int s = (int)sorted_tanks.size() - 1; s >= 0; s--)
-//        {
-//            const Tank* current_checking_tank = sorted_tanks.at(s);
-//
-//            if ((current_checking_tank->CompareHealth(current_tank) <= 0))
-//            {
-//                sorted_tanks.insert(1 + sorted_tanks.begin() + s, &current_tank);
-//                break;
-//            }
-//
-//            if (s == 0)
-//            {
-//                sorted_tanks.insert(sorted_tanks.begin(), &current_tank);
-//                break;
-//            }
-//        }
-//    }
-//}
 
 // -----------------------------------------------------------
 // When we reach MAX_FRAMES print the duration and speedup multiplier
