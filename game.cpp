@@ -60,8 +60,6 @@ const unsigned int threadCount = thread::hardware_concurrency();
 ThreadPool pool(threadCount);
 } // namespace
 
-//vector<Tank>& sorted;
-
 // -----------------------------------------------------------
 // Initialize the application
 // -----------------------------------------------------------
@@ -181,44 +179,6 @@ void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, int beginT, int e
     }
 }
 
-void Game::CollisionCheck(std::vector<Tank*> unsorted)
-{
-    for (int i = 0; i < unsorted.size(); i++)
-    {
-        int x = unsorted.at(i)->position.x;
-        int y = unsorted.at(i)->position.y;
-        int j = i + 1;
-        int k = i - 1;
-        while (j < unsorted.size() && unsorted.at(j)->position.x < x + (2 * unsorted.at(j)->collision_radius))
-        {
-
-            vec2 dir = unsorted.at(i)->Get_Position() - unsorted.at(j)->Get_Position();
-            float dirSquaredLen = dir.sqrLength();
-
-            float colSquaredLen = (unsorted.at(i)->collision_radius * unsorted.at(i)->collision_radius) + (unsorted.at(j)->collision_radius * unsorted.at(j)->collision_radius);
-
-            if (dirSquaredLen < colSquaredLen)
-            {
-                unsorted.at(i)->Push(dir.normalized(), 1.f);
-            }
-            j++;
-        }
-        while (k > 0 && unsorted[k]->position.x < x + (2 * unsorted[k]->collision_radius))
-        {
-            vec2 dir = unsorted.at(i)->Get_Position() - unsorted[k]->Get_Position();
-            float dirSquaredLen = dir.sqrLength();
-
-            float colSquaredLen = (unsorted.at(i)->collision_radius * unsorted.at(i)->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
-
-            if (dirSquaredLen < colSquaredLen)
-            {
-                unsorted.at(i)->Push(dir.normalized(), 1.f);
-            }
-            k--;
-        }
-    }
-}
-
 // -----------------------------------------------------------
 // Update the game state:
 // Move all objects
@@ -239,7 +199,6 @@ void Game::Update(float deltaTime)
         if (tank.active)
         {
             unsorted.push_back(&tank);
-            //Move tanks according to speed and nudges (see above) also reload
             tank.Tick();
 
             for (Rocket& rocket : rockets)
@@ -252,16 +211,10 @@ void Game::Update(float deltaTime)
                     {
                         smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
                     }
-
                     rocket.active = false;
                 }
-                if (!rocketTick)
-                {
-                    rocket.Tick();
-                }
+
             }
-            if (!rocketTick)
-                rocketTick = true;
 
             for (Particle_beam& particle_beam : particle_beams)
             {
@@ -272,13 +225,7 @@ void Game::Update(float deltaTime)
                         smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
                     }
                 }
-                if (!beamTick)
-                {
-                    particle_beam.tick(tanks);
-                }
             }
-            if (!beamTick)
-                beamTick = true;
 
             //Shoot at closest target if reloaded
             if (tank.Rocket_Reloaded())
@@ -304,6 +251,14 @@ void Game::Update(float deltaTime)
             }
             MassCollisionCheck(unsorted, step * i, endIndex);
         }));
+    }
+
+    for (Rocket& rocket : rockets) {
+        rocket.Tick();
+    }
+
+    for (Particle_beam& particle_beam : particle_beams) {
+        particle_beam.tick(tanks);
     }
 
     //Update smoke plumes
