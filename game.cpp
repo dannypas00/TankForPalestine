@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 51108.7 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -52,6 +52,13 @@ const static vec2 rocket_size(25, 24);
 
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
+
+namespace
+{
+const unsigned int threadCount = thread::hardware_concurrency();
+
+ThreadPool pool(threadCount);
+} // namespace
 
 //vector<Tank>& sorted;
 
@@ -126,38 +133,86 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
+void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, int beginT, int endT)
+{
+    std::vector<Tank*> stepTanks(&sortedTanks[beginT], &sortedTanks[endT]);
+    for (int i = 0; i < stepTanks.size(); i++)
+    {
+        int l = distance(&sortedTanks.at(0), std::find(&sortedTanks.at(0), &sortedTanks.at(sortedTanks.size() - 1), stepTanks.at(i)));
+        Tank* currTank = sortedTanks.at(l);
+        int x = currTank->position.x;
+        int y = currTank->position.y;
+        int j = l + 1;
+        int k = l - 1;
+        float collision_radius = currTank->collision_radius;
+
+        while (j < sortedTanks.size() && sortedTanks.at(j)->position.x <= x + (2 * collision_radius))
+        {
+            if (sortedTanks.at(j) != currTank)
+            {
+                vec2 dir = currTank->position - sortedTanks.at(j)->position;
+                float dirSquaredLen = dir.sqrLength();
+
+                float colSquaredLen = (collision_radius * collision_radius * 2);
+
+                if (dirSquaredLen < colSquaredLen)
+                {
+                    currTank->Push(dir.normalized(), 1.f);
+                }
+            }
+            j++;
+        }
+        while (k > 0 && sortedTanks.at(k)->position.x <= x + (2 * collision_radius))
+        {
+            if (sortedTanks.at(k) != currTank)
+            {
+                vec2 dir = currTank->position - sortedTanks.at(k)->position;
+                float dirSquaredLen = dir.sqrLength();
+
+                float colSquaredLen = (collision_radius * collision_radius + (collision_radius * collision_radius));
+
+                if (dirSquaredLen < colSquaredLen)
+                {
+                    currTank->Push(dir.normalized(), 1.f);
+                }
+            }
+            k--;
+        }
+    }
+}
+
 void Game::CollisionCheck(std::vector<Tank*> unsorted)
 {
-    Mergesort::mergesort::sortX(unsorted, 0, unsorted.size() - 1);
     for (int i = 0; i < unsorted.size(); i++)
     {
-        int x = unsorted[i]->position.x;
-        int y = unsorted[i]->position.y;
+        int x = unsorted.at(i)->position.x;
+        int y = unsorted.at(i)->position.y;
         int j = i + 1;
         int k = i - 1;
-        while (j < unsorted.size() && unsorted[j]->position.x < x + (2 * unsorted[j]->collision_radius))
+        while (j < unsorted.size() && unsorted.at(j)->position.x < x + (2 * unsorted.at(j)->collision_radius))
         {
-            vec2 dir = unsorted[i]->Get_Position() - unsorted[j]->Get_Position();
+
+            vec2 dir = unsorted.at(i)->Get_Position() - unsorted.at(j)->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[j]->collision_radius * unsorted[j]->collision_radius);
+            float colSquaredLen = (unsorted.at(i)->collision_radius * unsorted.at(i)->collision_radius) + (unsorted.at(j)->collision_radius * unsorted.at(j)->collision_radius);
 
             if (dirSquaredLen < colSquaredLen)
             {
-                unsorted[i]->Push(dir.normalized(), 1.f);
+                unsorted.at(i)->Push(dir.normalized(), 1.f);
             }
             j++;
         }
         while (k > 0 && unsorted[k]->position.x < x + (2 * unsorted[k]->collision_radius))
         {
-            vec2 dir = unsorted[i]->Get_Position() - unsorted[k]->Get_Position();
+            vec2 dir = unsorted.at(i)->Get_Position() - unsorted[k]->Get_Position();
             float dirSquaredLen = dir.sqrLength();
 
-            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
+            float colSquaredLen = (unsorted.at(i)->collision_radius * unsorted.at(i)->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
 
             if (dirSquaredLen < colSquaredLen)
             {
-                unsorted[i]->Push(dir.normalized(), 1.f);
+                unsorted.at(i)->Push(dir.normalized(), 1.f);
             }
             k--;
         }
@@ -173,6 +228,7 @@ void Game::CollisionCheck(std::vector<Tank*> unsorted)
 // -----------------------------------------------------------
 void Game::Update(float deltaTime)
 {
+    std::vector<future<void>> fut;
     std::vector<Tank*> unsorted;
     //Update tanks
     for (Tank& tank : tanks)
@@ -194,7 +250,16 @@ void Game::Update(float deltaTime)
             }
         }
     }
-    CollisionCheck(unsorted);
+
+    int step = unsorted.size() / threadCount;
+    Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
+    for (int i = 0; i < threadCount; i++)
+    {
+        fut.emplace_back(pool.enqueue([&] {
+            MassCollisionCheck(unsorted, step * i, (step * i) + step - 1);
+        }));
+    }
+    //CollisionCheck(unsorted, fut);
 
     //Update smoke plumes
     for (Smoke& smoke : smokes)
@@ -253,6 +318,10 @@ void Game::Update(float deltaTime)
     }
 
     explosions.erase(std::remove_if(explosions.begin(), explosions.end(), [](const Explosion& explosion) { return explosion.done(); }), explosions.end());
+    for (future<void>& f : fut)
+    {
+        f.wait();
+    }
 }
 
 void Game::Draw()
@@ -300,7 +369,8 @@ void Game::Draw()
         const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
 
-        Mergesort::mergesort::sortHealth(sorted, begin, begin + NUM_TANKS - 1);
+        //Mergesort::mergesort::sortHealth(sorted, begin, begin + NUM_TANKS - 1);
+        Mergesort::mergesort::poolHealthSort(sorted, begin, begin + NUM_TANKS - 1, 1);
 
         for (int i = 0; i < NUM_TANKS; i++)
         {

@@ -1,7 +1,23 @@
 #include "mergesort.h"
-#include "precomp.h";
+#include "precomp.h"
 
+#include <thread>
+#include <mutex>
+#include <cmath>
+#include <chrono>
+
+//#include "ThreadPool.h"
+
+namespace
+{
+const unsigned int threadCount = thread::hardware_concurrency();
+
+ThreadPool pool(threadCount);
+}
+
+using namespace std::chrono;
 using namespace Tmpl8;
+
 
 namespace Mergesort
 {
@@ -28,7 +44,7 @@ void mergesort::mergeHealth(std::vector<Tank*>& original, UINT16 l, UINT16 m, UI
 
     while (i < low && j < high)
     {
-        if (leftVector[i] -> health <= rightVector[j] -> health)
+        if (leftVector[i]->health <= rightVector[j]->health)
         {
             original[k] = leftVector[i];
             i++;
@@ -79,7 +95,7 @@ void mergesort::mergeX(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 
 
     while (i < low && j < high)
     {
-        if (leftVector[i] -> position.x <= rightVector[j] -> position.x)
+        if (leftVector[i]->position.x <= rightVector[j]->position.x)
         {
             original[k] = leftVector[i];
             i++;
@@ -190,6 +206,87 @@ void mergesort::sort(std::vector<double*>& original, UINT16 l, UINT16 r)
 
         sort(original, l, m);
         sort(original, m + 1, r);
+        merge(original, l, m, r);
+    }
+}
+
+void mergesort::poolHealthSort(std::vector<Tank*>& original, UINT16 l, UINT16 r, UINT16 depth)
+{
+    if (l < r)
+    {
+        // Same as (l+r)/2, but avoids overflow for
+        // large l and h
+        int m = l + (r - l) / 2;
+
+        // Sort first and second halves
+        if (pow(2, depth) <= threadCount)
+        {
+            //printf("thread %i spawned\n", (int)pow(2, depth));
+
+            future<void> f = pool.enqueue([&] { poolHealthSort(original, l, m, depth + 1); }); //Left
+            poolHealthSort(original, m + 1, r, depth + 1);                                     //Right
+            f.wait();
+        }
+        else
+        {
+            sortHealth(original, l, m);     //Left
+            sortHealth(original, m + 1, r); //Right
+        }
+
+        mergeHealth(original, l, m, r);
+    }
+}
+
+void mergesort::poolXSort(std::vector<Tank*>& original, UINT16 l, UINT16 r, UINT16 depth)
+{
+    if (l < r)
+    {
+        // Same as (l+r)/2, but avoids overflow for
+        // large l and h
+        int m = l + (r - l) / 2;
+
+        // Sort first and second halves
+        if (pow(2, depth) <= threadCount)
+        {
+            //printf("thread %i spawned\n", (int)pow(2, depth));
+
+            future<void> f = pool.enqueue([&] { poolXSort(original, l, m, depth + 1); }); //Left
+            poolXSort(original, m + 1, r, depth + 1);                                     //Right
+            f.wait();
+        }
+        else
+        {
+            sortX(original, l, m);     //Left
+            sortX(original, m + 1, r); //Right
+        }
+
+        mergeX(original, l, m, r);
+    }
+}
+
+void mergesort::poolSort(std::vector<double*>& original, UINT16 l, UINT16 r, UINT16 depth)
+{
+    if (l < r)
+    {
+        // Same as (l+r)/2, but avoids overflow for
+        // large l and h
+        int m = l + (r - l) / 2;
+
+        // Sort first and second halves
+        if (pow(2, depth) <= threadCount)
+        {
+            //printf("thread %i spawned\n", (int)pow(2, depth));
+
+            future<void> f = pool.enqueue([&] { poolSort(original, l, m, depth + 1); }); //Left
+            poolSort(original, m + 1, r, depth + 1);                                     //Right
+            f.wait();
+        }
+        else
+        {
+            sort(original, l, m);     //Left
+            sort(original, m + 1, r); //Right
+        }
+
         merge(original, l, m, r);
     }
 }
