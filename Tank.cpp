@@ -13,7 +13,7 @@ Tank::Tank(
     Sprite* smoke_sprite,
     float tar_x,
     float tar_y,
-    UINT16 collision_radius,
+    float collision_radius,
     int health,
     float max_speed)
     : position(pos_x, pos_y),
