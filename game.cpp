@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 73107.3 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -93,6 +93,7 @@ void Game::Init()
     particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
     particle_beams.push_back(Particle_beam(vec2(80, 80), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
     particle_beams.push_back(Particle_beam(vec2(1200, 600), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
+    KdTree(sorted, sorted[0]);
 }
 
 // -----------------------------------------------------------
@@ -126,40 +127,76 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
+//Overload function for starting the K-d tree
+void Game::KdTree(std::vector<Tank*>& kdtanks, Tank* root)
+{
+    int depth = 0;
+    
+    char axis = (depth % 2 == 1 ? 'x' : 'y');
+    int midIndex = kdtanks.size() / 2;
+    axis == 'x' ? Mergesort::mergesort::sortX(kdtanks, (UINT16)kdtanks.at(0), (UINT16)kdtanks.at(kdtanks.size() - 1)) : Mergesort::mergesort::sortY(kdtanks, (UINT16)kdtanks.at(0), (UINT16)kdtanks.at(kdtanks.size() - 1));
+    Tank* tank = kdtanks.at(midIndex);
+    tank->kdLeftTank = KdTree(kdtanks, 0, midIndex - 1, depth + 1);
+    tank->kdRightTank = KdTree(kdtanks, midIndex + 1, kdtanks.size(), depth + 1);
+}
+
+//Generating the K-d tree from 
+Tank* Game::KdTree(std::vector<Tank*>& kdtanks, int l, int r, int depth)
+{
+    char axis = (depth % 2 == 1 ? 'x' : 'y');
+    int midIndex = (distance(kdtanks.at(l), kdtanks.at(r)) + l) / 2;
+    axis == 'x' ? Mergesort::mergesort::sortX(kdtanks, (UINT16)kdtanks.at(0), (UINT16)kdtanks.at(kdtanks.size() - 1)) : Mergesort::mergesort::sortY(kdtanks, (UINT16)kdtanks.at(0), (UINT16)kdtanks.at(kdtanks.size() - 1));
+    Tank* tank = kdtanks.at(midIndex);
+    if (r > l)
+    {
+        if (l > 0 && midIndex > 0) tank->kdLeftTank = KdTree(kdtanks, l, midIndex - 1, depth + 1);
+        if (r > 0) tank->kdRightTank = KdTree(kdtanks, midIndex + 1, r, depth + 1);
+    }
+    return tank;
+}
+
+Tank* Game::KdFindNearest(Tank* root, std::vector<Tank*>& kdtanks) {
+    KdTree(kdtanks, root);
+    return nullptr;
+}
+
 void Game::CollisionCheck(std::vector<Tank*> unsorted)
 {
     Mergesort::mergesort::sortX(unsorted, 0, unsorted.size() - 1);
     for (int i = 0; i < unsorted.size(); i++)
     {
-        int x = unsorted[i]->position.x;
-        int y = unsorted[i]->position.y;
-        int j = i + 1;
-        int k = i - 1;
-        while (j < unsorted.size() && unsorted[j]->position.x < x + (2 * unsorted[j]->collision_radius))
+        if (unsorted[i]->active)
         {
-            vec2 dir = unsorted[i]->Get_Position() - unsorted[j]->Get_Position();
-            float dirSquaredLen = dir.sqrLength();
-
-            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[j]->collision_radius * unsorted[j]->collision_radius);
-
-            if (dirSquaredLen < colSquaredLen)
+            int x = unsorted[i]->position.x;
+            int y = unsorted[i]->position.y;
+            int j = i + 1;
+            int k = i - 1;
+            while (j < unsorted.size() && unsorted[j]->position.x < x + (2 * unsorted[j]->collision_radius))
             {
-                unsorted[i]->Push(dir.normalized(), 1.f);
+                vec2 dir = unsorted[i]->Get_Position() - unsorted[j]->Get_Position();
+                float dirSquaredLen = dir.sqrLength();
+
+                float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[j]->collision_radius * unsorted[j]->collision_radius);
+
+                if (dirSquaredLen < colSquaredLen)
+                {
+                    unsorted[i]->Push(dir.normalized(), 1.f);
+                }
+                j++;
             }
-            j++;
-        }
-        while (k > 0 && unsorted[k]->position.x < x + (2 * unsorted[k]->collision_radius))
-        {
-            vec2 dir = unsorted[i]->Get_Position() - unsorted[k]->Get_Position();
-            float dirSquaredLen = dir.sqrLength();
-
-            float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
-
-            if (dirSquaredLen < colSquaredLen)
+            while (k > 0 && unsorted[k]->position.x < x + (2 * unsorted[k]->collision_radius))
             {
-                unsorted[i]->Push(dir.normalized(), 1.f);
+                vec2 dir = unsorted[i]->Get_Position() - unsorted[k]->Get_Position();
+                float dirSquaredLen = dir.sqrLength();
+
+                float colSquaredLen = (unsorted[i]->collision_radius * unsorted[i]->collision_radius) + (unsorted[k]->collision_radius * unsorted[k]->collision_radius);
+
+                if (dirSquaredLen < colSquaredLen)
+                {
+                    unsorted[i]->Push(dir.normalized(), 1.f);
+                }
+                k--;
             }
-            k--;
         }
     }
 }
@@ -179,6 +216,17 @@ void Game::Update(float deltaTime)
     {
         if (tank.active)
         {
+            for (Particle_beam& particle_beam : particle_beams)
+            {
+                if (particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
+                {
+                    if (tank.hit(particle_beam.damage))
+                    {
+                        smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+                    }
+                }
+            }
+
             unsorted.push_back(&tank);
             //Move tanks according to speed and nudges (see above) also reload
             tank.Tick();
@@ -232,18 +280,6 @@ void Game::Update(float deltaTime)
     for (Particle_beam& particle_beam : particle_beams)
     {
         particle_beam.tick(tanks);
-
-        //Damage all tanks within the damage window of the beam (the window is an axis-aligned bounding box)
-        for (Tank& tank : tanks)
-        {
-            if (tank.active && particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
-            {
-                if (tank.hit(particle_beam.damage))
-                {
-                    smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                }
-            }
-        }
     }
 
     //Update explosion sprites and remove when done with remove erase idiom

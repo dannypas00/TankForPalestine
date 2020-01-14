@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -120,6 +120,7 @@
   <ItemGroup>
     <ClCompile Include="explosion.cpp" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="mergesort.cpp" />
     <ClCompile Include="particle_beam.cpp" />
     <ClCompile Include="rocket.cpp" />
@@ -133,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="explosion.h" />
     <ClInclude Include="game.h" />
+    <ClInclude Include="GameObject.h" />
     <ClInclude Include="mergesort.h" />
     <ClInclude Include="particle_beam.h" />
     <ClInclude Include="precomp.h" />

@@ -107,6 +107,57 @@ void mergesort::mergeX(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 
     }
 }
 
+void mergesort::mergeY(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 r)
+{
+    UINT16 low = m - l + 1;
+    UINT16 high = r - m;
+    std::vector<Tank*> leftVector, rightVector;
+    leftVector.reserve(low);
+    rightVector.reserve(high);
+
+    for (UINT16 i = 0; i < low; i++)
+    {
+        leftVector.push_back(original[l + i]);
+    }
+    for (UINT16 j = 0; j < high; j++)
+    {
+        rightVector.push_back(original.at(m + 1 + j));
+    }
+
+    UINT16 i = 0;
+    UINT16 j = 0;
+    UINT16 k = l;
+
+    while (i < low && j < high)
+    {
+        if (leftVector[i]->position.y <= rightVector[j]->position.y)
+        {
+            original[k] = leftVector[i];
+            i++;
+        }
+        else
+        {
+            original[k] = rightVector[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i < low)
+    {
+        original[k] = leftVector[i];
+        i++;
+        k++;
+    }
+
+    while (j < high)
+    {
+        original[k] = rightVector[j];
+        j++;
+        k++;
+    }
+}
+
 void mergesort::merge(std::vector<double*>& original, UINT16 l, UINT16 m, UINT16 r)
 {
     UINT16 low = m - l + 1;
@@ -179,6 +230,18 @@ void mergesort::sortX(std::vector<Tank*>& original, UINT16 l, UINT16 r)
         sortX(original, l, m);
         sortX(original, m + 1, r);
         mergeX(original, l, m, r);
+    }
+}
+
+void mergesort::sortY(std::vector<Tank*>& original, UINT16 l, UINT16 r)
+{
+    if (l < r)
+    {
+        UINT16 m = l + (r - l) / 2;
+
+        sortY(original, l, m);
+        sortY(original, m + 1, r);
+        mergeY(original, l, m, r);
     }
 }
 

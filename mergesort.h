@@ -10,8 +10,10 @@ class mergesort
     static void sort(std::vector<double*>& original, UINT16 l, UINT16 r);
     static void sortHealth(std::vector<Tank*>& original, UINT16 l, UINT16 r);
     static void sortX(std::vector<Tank*>& original, UINT16 l, UINT16 r);
+    static void sortY(std::vector<Tank*>& original, UINT16 l, UINT16 r);
     static void merge(std::vector<double*>& original, UINT16 l, UINT16 m, UINT16 r);
     static void mergeHealth(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 r);
     static void mergeX(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 r);
+    static void mergeY(std::vector<Tank*>& original, UINT16 l, UINT16 m, UINT16 r);
 };
 } // namespace Mergesort

@@ -54,6 +54,8 @@ class Tank
     Sprite* tank_sprite;
     Sprite* smoke_sprite;
 
+    Tank* kdLeftTank = nullptr;
+    Tank* kdRightTank = nullptr;
 };
 
 } // namespace Tmpl8

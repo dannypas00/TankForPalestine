@@ -21,6 +21,10 @@ class Game
     void MeasurePerformance();
     void ParallelTankSpawn(size_t, float, float, float, float, float, uint, uint);
 
+    void KdTree(std::vector<Tank*>& kdtanks, Tank* root);
+    Tank* Game::KdTree(std::vector<Tank*>& kdtanks, int l, int r, int depth);
+    Tank* KdFindNearest(Tank* root, std::vector<Tank*>& kdtanks);
+
     Tank& FindClosestEnemy(Tank& current_tank);
 
     void CollisionCheck(std::vector<Tank*> unsorted);
