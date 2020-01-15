@@ -22,9 +22,9 @@
 #define MAX_FRAMES 2000
 
 //Global performance timer
-//REF_PERFORMANCE NICK: 51108.7
+//REF_PERFORMANCE NICK: 57137.9
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 52618.2 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 57137.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -315,15 +315,11 @@ void Game::Draw()
             }
         }));
     }
-    //for (int i = 0; i < NUM_TANKS_BLUE + NUM_TANKS_RED; i++)
-    //{
-    //    tanks.at(i).Draw(screen);
-
-    //    vec2 tPos = tanks.at(i).Get_Position();
-    //    // tread marks
-    //    if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
-    //        background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
-    //}
+    for (future<void>& f : drawFut)
+    {
+        f.wait();
+    }
+    drawFut.clear();
 
     int rocketStep = rockets.size() / threadCount;
     for (int i = 0; i < threadCount; i++)
@@ -340,6 +336,11 @@ void Game::Draw()
             }
         }));
     }
+    for (future<void>& f : drawFut)
+    {
+        f.wait();
+    }
+    drawFut.clear();
 
     int smokeStep = smokes.size() / threadCount;
     for (int i = 0; i < threadCount; i++)
@@ -356,6 +357,11 @@ void Game::Draw()
             }
         }));
     }
+    for (future<void>& f : drawFut)
+    {
+        f.wait();
+    }
+    drawFut.clear();
 
     for (Particle_beam& particle_beam : particle_beams)
     {
@@ -363,6 +369,11 @@ void Game::Draw()
             particle_beam.Draw(screen);
         }));
     }
+    for (future<void>& f : drawFut)
+    {
+        f.wait();
+    }
+    drawFut.clear();
 
     int explosionStep = explosions.size() / threadCount;
     for (int i = 0; i < threadCount; i++)
@@ -379,15 +390,16 @@ void Game::Draw()
             }
         }));
     }
-
     for (future<void>& f : drawFut)
     {
         f.wait();
     }
+    drawFut.clear();
 
     //Draw sorted health bars
     for (int t = 0; t < 2; t++)
     {
+        drawFut.emplace_back(pool.enqueue([&, t] {
         const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
         const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
 
@@ -404,7 +416,13 @@ void Game::Draw()
             screen->Bar(health_bar_start_x, health_bar_start_y, health_bar_end_x, health_bar_end_y, REDMASK);
             screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted[begin + i]->health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
         }
+        }));
     }
+    for (future<void>& f : drawFut)
+    {
+        f.wait();
+    }
+    drawFut.clear();
 }
 
 // -----------------------------------------------------------
