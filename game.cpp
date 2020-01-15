@@ -295,15 +295,35 @@ void Game::Draw()
     background.Draw(screen, 0, 0);
 
     //Draw sprites
-    for (int i = 0; i < NUM_TANKS_BLUE + NUM_TANKS_RED; i++)
+    int tankStep = tanks.size() / threadCount;
+    for (int i = 0; i < threadCount; i++)
     {
-        tanks.at(i).Draw(screen);
+        drawFut.emplace_back(pool.enqueue([&, i] {
+            int endIndex = (tankStep * i) + tankStep - 1;
+            if (endIndex > tanks.size() - 1)
+            {
+                endIndex = tanks.size() - 1;
+            }
+            for (int j = (tankStep * i); j < endIndex; j++)
+            {
+                tanks.at(j).Draw(screen);
 
-        vec2 tPos = tanks.at(i).Get_Position();
-        // tread marks
-        if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
-            background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
+                vec2 tPos = tanks.at(i).Get_Position();
+                // tread marks
+                if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
+                    background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
+            }
+        }));
     }
+    //for (int i = 0; i < NUM_TANKS_BLUE + NUM_TANKS_RED; i++)
+    //{
+    //    tanks.at(i).Draw(screen);
+
+    //    vec2 tPos = tanks.at(i).Get_Position();
+    //    // tread marks
+    //    if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
+    //        background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
+    //}
 
     int rocketStep = rockets.size() / threadCount;
     for (int i = 0; i < threadCount; i++)
@@ -337,19 +357,10 @@ void Game::Draw()
         }));
     }
 
-    int beamStep = particle_beams.size() / threadCount;
-    for (int i = 0; i < threadCount; i++)
+    for (Particle_beam& particle_beam : particle_beams)
     {
-        drawFut.emplace_back(pool.enqueue([&, i] {
-            int endIndex = (beamStep * i) + beamStep - 1;
-            if (endIndex > particle_beams.size() - 1)
-            {
-                endIndex = particle_beams.size() - 1;
-            }
-            for (int j = (beamStep * i); j < endIndex; j++)
-            {
-                particle_beams.at(j).Draw(screen);
-            }
+        drawFut.emplace_back(pool.enqueue([&] {
+            particle_beam.Draw(screen);
         }));
     }
 
