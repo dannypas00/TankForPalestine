@@ -24,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 51108.7
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 60245.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 52618.2 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -240,12 +240,12 @@ void Game::Update(float deltaTime)
         }
     }
 
-    int step = active.size() / threadCount;
+    int step = floor(active.size() / threadCount);
     Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
     Mergesort::mergesort::poolXSort(active, 0, active.size() - 1, 1);
-    for (int i = 0; i < threadCount; i++)
+    for (int i = 0; i < threadCount; i++)   //Don't pass i by reference but by value
     {
-        fut.emplace_back(pool.enqueue([&] {
+        fut.emplace_back(pool.enqueue([&, i] {
             int endIndex = (step * i) + step - 1;
             if ((step * i) + step - 1 > active.size() - 1)
             {
@@ -254,7 +254,10 @@ void Game::Update(float deltaTime)
             MassCollisionCheck(unsorted, active, step * i, endIndex);
         }));
     }
-
+    for (future<void>& f : fut)
+    {
+        f.wait();
+    }
     for (Rocket& rocket : rockets) {
         rocket.Tick();
     }
@@ -279,10 +282,6 @@ void Game::Update(float deltaTime)
     }
 
     explosions.erase(std::remove_if(explosions.begin(), explosions.end(), [](const Explosion& explosion) { return explosion.done(); }), explosions.end());
-    for (future<void>& f : fut)
-    {
-        f.wait();
-    }
 }
 
 void Game::Draw()
