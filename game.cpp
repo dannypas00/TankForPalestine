@@ -131,27 +131,26 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
-void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, int beginT, int endT)
+void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, std::vector<Tank*>& activeTanks, int beginT, int endT)
 {
-    std::vector<Tank*> stepTanks(&sortedTanks[beginT], &sortedTanks[endT]);
+    std::vector<Tank*> stepTanks(&activeTanks[beginT], &activeTanks[endT]);
     for (int i = 0; i < stepTanks.size(); i++)
     {
-        int l = distance(&sortedTanks.at(0), std::find(&sortedTanks.at(0), &sortedTanks.at(sortedTanks.size() - 1), stepTanks.at(i)));
-        Tank* currTank = sortedTanks.at(l);
+        int l = distance(&activeTanks.at(0), std::find(&activeTanks.at(0), &activeTanks.at(activeTanks.size() - 1), stepTanks.at(i)));
+        Tank* currTank = activeTanks.at(l);
         int x = currTank->position.x;
         int y = currTank->position.y;
         int j = l + 1;
         int k = l - 1;
-        float collision_radius = currTank->collision_radius;
 
-        while (j < sortedTanks.size() && sortedTanks.at(j)->position.x <= x + (2 * collision_radius))
+        while (j < sortedTanks.size() && sortedTanks.at(j)->position.x <= x + (2 * tank_radius))
         {
             if (sortedTanks.at(j) != currTank)
             {
                 vec2 dir = currTank->position - sortedTanks.at(j)->position;
                 float dirSquaredLen = dir.sqrLength();
 
-                float colSquaredLen = (collision_radius * collision_radius * 2);
+                float colSquaredLen = (tank_radius * tank_radius * 2);
 
                 if (dirSquaredLen < colSquaredLen)
                 {
@@ -160,14 +159,14 @@ void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, int beginT, int e
             }
             j++;
         }
-        while (k > 0 && sortedTanks.at(k)->position.x <= x + (2 * collision_radius))
+        while (k > 0 && sortedTanks.at(k)->position.x <= x + (2 * tank_radius))
         {
             if (sortedTanks.at(k) != currTank)
             {
                 vec2 dir = currTank->position - sortedTanks.at(k)->position;
                 float dirSquaredLen = dir.sqrLength();
 
-                float colSquaredLen = (collision_radius * collision_radius + (collision_radius * collision_radius));
+                float colSquaredLen = (tank_radius * tank_radius * 2);
 
                 if (dirSquaredLen < colSquaredLen)
                 {
@@ -190,20 +189,22 @@ void Game::Update(float deltaTime)
 {
     std::vector<future<void>> fut;
     std::vector<Tank*> unsorted;
+    std::vector<Tank*> active;
     beamTick = false;
     rocketTick = false;
 
     //Update tanks
     for (Tank& tank : tanks)
     {
+        unsorted.push_back(&tank);
         if (tank.active)
         {
-            unsorted.push_back(&tank);
+            active.push_back(&tank);
             tank.Tick();
 
             for (Rocket& rocket : rockets)
             {
-                if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank.collision_radius))
+                if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank_radius))
                 {
                     explosions.push_back(Explosion(&explosion, tank.position));
 
@@ -218,7 +219,7 @@ void Game::Update(float deltaTime)
 
             for (Particle_beam& particle_beam : particle_beams)
             {
-                if (particle_beam.rectangle.intersectsCircle(tank.Get_Position(), tank.Get_collision_radius()))
+                if (particle_beam.rectangle.intersectsCircle(tank.position, tank_radius))
                 {
                     if (tank.hit(particle_beam.damage))
                     {
@@ -239,17 +240,18 @@ void Game::Update(float deltaTime)
         }
     }
 
-    int step = unsorted.size() / threadCount;
+    int step = active.size() / threadCount;
     Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
+    Mergesort::mergesort::poolXSort(active, 0, active.size() - 1, 1);
     for (int i = 0; i < threadCount; i++)
     {
         fut.emplace_back(pool.enqueue([&] {
             int endIndex = (step * i) + step - 1;
-            if ((step * i) + step - 1 > unsorted.size() - 1)
+            if ((step * i) + step - 1 > active.size() - 1)
             {
-                endIndex = unsorted.size() - 1;
+                endIndex = active.size() - 1;
             }
-            MassCollisionCheck(unsorted, step * i, endIndex);
+            MassCollisionCheck(unsorted, active, step * i, endIndex);
         }));
     }
 
