@@ -66,6 +66,8 @@ class Game
     long long frame_count = 0;
 
     bool lock_update = false;
+    bool rocketTick = false;
+    bool beamTick = false;
 };
 
 }; // namespace Tmpl8
