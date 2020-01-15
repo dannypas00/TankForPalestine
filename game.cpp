@@ -308,7 +308,7 @@ void Game::Draw()
             {
                 tanks.at(j).Draw(screen);
 
-                vec2 tPos = tanks.at(i).Get_Position();
+                vec2 tPos = tanks.at(j).Get_Position();
                 // tread marks
                 if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
                     background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
