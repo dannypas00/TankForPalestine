@@ -3,8 +3,6 @@
 
 namespace Tmpl8
 {
-
-    
 Tank::Tank(
     float pos_x,
     float pos_y,

@@ -13,7 +13,6 @@
     <ClCompile Include="smoke.cpp" />
     <ClCompile Include="particle_beam.cpp" />
     <ClCompile Include="explosion.cpp" />
-    <ClCompile Include="mergesort.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h" />
@@ -30,7 +29,6 @@
     <ClInclude Include="particle_beam.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="explosion.h" />
-    <ClInclude Include="mergesort.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template code">

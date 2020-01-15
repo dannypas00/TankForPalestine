@@ -37,8 +37,6 @@ class Tank
     vec2 speed;
     vec2 target;
 
-    
-
     int health;
 
     float collision_radius;

@@ -17,17 +17,10 @@ class Game
     void Update(float deltaTime);
     void Draw();
     void Tick(float deltaTime);
-    //void insertion_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end);
+    void insertion_sort_tanks_health(const std::vector<Tank>& original, std::vector<const Tank*>& sorted_tanks, UINT16 begin, UINT16 end);
     void MeasurePerformance();
-    void ParallelTankSpawn(size_t, float, float, float, float, float, uint, uint);
 
     Tank& FindClosestEnemy(Tank& current_tank);
-
-    void MassCollisionCheck(std::vector<Tank*>& sortedTanks, std::vector<Tank*>& activeTanks, int beginT, int endT);
-
-    void CollisionCheck(std::vector<Tank*> unsorted);
-
-    Tank& FindClosestEnemyParallel(Tank& current_tank);
 
     void MouseUp(int button)
     { /* implement if you want to detect mouse button presses */
@@ -57,17 +50,11 @@ class Game
     vector<Smoke> smokes;
     vector<Explosion> explosions;
     vector<Particle_beam> particle_beams;
-    vector<Tank*> sorted;
-    vector<Tank*> colsorted;
-    vector<Tank*> bluetanks;
-    vector<Tank*> redtanks;
 
     Font* frame_count_font;
     long long frame_count = 0;
 
     bool lock_update = false;
-    bool rocketTick = false;
-    bool beamTick = false;
 };
 
 }; // namespace Tmpl8
