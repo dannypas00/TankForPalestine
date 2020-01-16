@@ -61,7 +61,6 @@ class Game
     vector<Tank*> colsorted;
     vector<Tank*> bluetanks;
     vector<Tank*> redtanks;
-    Grid::Grid grid;
 
     Font* frame_count_font;
     long long frame_count = 0;

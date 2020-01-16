@@ -2,33 +2,42 @@
 
 std::vector<std::vector<vector<Tank*>>> GridVector;
 UINT16 cellSize;
-Grid::Grid::Grid(int width, int height, UINT16 cellSize)
+Grid::Grid::Grid(int width, int height, UINT16 cSize)
 {
+    cellSize = cSize;
     std::vector<std::vector<vector<Tank*>>> xVector;
-    for (int x = (width / cellSize) - 1; x >= 0; x--)
+    for (int x = (width / cSize) - 1; x >= 0; x--)
     {
         std::vector<std::vector<Tank*>> yVector;
-        for (int y = (height / cellSize) - 1; y >= 0; y--)
+        for (int y = (height / cSize) - 1; y >= 0; y--)
         {
-            yVector.at(y) = std::vector<Tank*>();
+            yVector.push_back(std::vector<Tank*>());
         }
-        xVector.at(x) = yVector;
+        xVector.push_back(yVector);
     }
     GridVector = xVector;
 }
 
-void Grid::Grid::FillGrid(std::vector<Tank*>& tanks)
+void Grid::Grid::FillGrid(Tank* tank)
 {
-    for (Tank* tank : tanks)
-    {
-        vec2 pos = GetGridPoint(tank->position);
-        float x = pos.x;
-        float y = pos.y;
-        GridVector.at(x).at(y).emplace_back(tank);
-    }
+    vec2 pos = GetGridPoint(tank->position);
+    float x = pos.x-1;
+    float y = pos.y-1;
+    GridVector.at(x).at(y).push_back(tank);
+    tank->currentCell = GridVector.at(x).at(y);
 }
 
 vec2 Grid::Grid::GetGridPoint(vec2 position)
 {
     return vec2(floor(position.x / cellSize), floor(position.y / cellSize));
 }
+
+Tank* Grid::Grid::FindNearestNeighbor(Tank* tank)
+{
+    std::vector<Tank*>& currentCell = tank->currentCell;
+    vec2 distance = {0,
+                     0};
+
+    return nullptr;
+}
+

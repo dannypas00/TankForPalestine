@@ -52,6 +52,7 @@ const static vec2 rocket_size(25, 24);
 
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
+Grid::Grid grid = Grid::Grid::Grid(99999, 99999, tank_radius);
 
 namespace
 {
@@ -202,6 +203,8 @@ void Game::Update(float deltaTime)
             active.push_back(&tank);
             tank.Tick();
 
+            grid.FillGrid(&tank);
+
             for (Rocket& rocket : rockets)
             {
                 if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank_radius))
@@ -214,7 +217,6 @@ void Game::Update(float deltaTime)
                     }
                     rocket.active = false;
                 }
-
             }
 
             for (Particle_beam& particle_beam : particle_beams)
@@ -245,7 +247,7 @@ void Game::Update(float deltaTime)
     Mergesort::mergesort::poolXSort(active, 0, active.size() - 1, 1);
     for (int i = 0; i < threadCount; i++)
     {
-        fut.emplace_back(pool.enqueue([&] {
+        fut.emplace_back(pool.enqueue([&, i] {
             int endIndex = (step * i) + step - 1;
             if ((step * i) + step - 1 > active.size() - 1)
             {
@@ -255,11 +257,13 @@ void Game::Update(float deltaTime)
         }));
     }
 
-    for (Rocket& rocket : rockets) {
+    for (Rocket& rocket : rockets)
+    {
         rocket.Tick();
     }
 
-    for (Particle_beam& particle_beam : particle_beams) {
+    for (Particle_beam& particle_beam : particle_beams)
+    {
         particle_beam.tick(tanks);
     }
 

@@ -37,7 +37,7 @@ class Tank
     vec2 speed;
     vec2 target;
 
-    
+    std::vector<Tank*>& currentCell;
 
     int health;
 
