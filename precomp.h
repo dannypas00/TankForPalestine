@@ -88,6 +88,7 @@ using namespace Tmpl8;
 #include "particle_beam.h"
 #include "mergesort.h"
 #include "game.h"
+#include "Grid.h"
 
 
 
