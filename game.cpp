@@ -233,9 +233,12 @@ void Game::Update(float deltaTime)
             //Shoot at closest target if reloaded
             if (tank.Rocket_Reloaded())
             {
-                Tank& target = FindClosestEnemy(tank);
+                Tank* target = grid.FindNearestNeighbor(&tank);
 
-                rockets.push_back(Rocket(tank.position, (target.Get_Position() - tank.position).normalized() * 3, rocket_radius, tank.allignment, ((tank.allignment == RED) ? &rocket_red : &rocket_blue)));
+                if (target != nullptr)
+                {
+                    rockets.push_back(Rocket(tank.position, (target->Get_Position() - tank.position).normalized() * 3, rocket_radius, tank.allignment, ((tank.allignment == RED) ? &rocket_red : &rocket_blue)));
+                }
 
                 tank.Reload_Rocket();
             }
