@@ -52,7 +52,7 @@ const static vec2 rocket_size(25, 24);
 
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
-Grid::Grid grid = Grid::Grid::Grid(99999, 99999, tank_radius);
+Grid::Grid grid = Grid::Grid::Grid(9999, 9999, tank_radius);
 
 namespace
 {
@@ -120,7 +120,7 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     {
         if (tanks.at(i).allignment != current_tank.allignment && tanks.at(i).active)
         {
-            float sqrDist = fabsf((tanks.at(i).Get_Position() - current_tank.Get_Position()).sqrLength());
+            float sqrDist = abs((tanks.at(i).Get_Position() - current_tank.Get_Position()).sqrLength());
             if (sqrDist < closest_distance)
             {
                 closest_distance = sqrDist;
@@ -203,22 +203,6 @@ void Game::Update(float deltaTime)
             active.push_back(&tank);
             tank.Tick();
 
-            grid.FillGrid(&tank);
-
-            for (Rocket& rocket : rockets)
-            {
-                if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank_radius))
-                {
-                    explosions.push_back(Explosion(&explosion, tank.position));
-
-                    if (tank.hit(ROCKET_HIT_VALUE))
-                    {
-                        smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                    }
-                    rocket.active = false;
-                }
-            }
-
             for (Particle_beam& particle_beam : particle_beams)
             {
                 if (particle_beam.rectangle.intersectsCircle(tank.position, tank_radius))
@@ -233,14 +217,38 @@ void Game::Update(float deltaTime)
             //Shoot at closest target if reloaded
             if (tank.Rocket_Reloaded())
             {
-                Tank* target = grid.FindNearestNeighbor(&tank);
+                Tank& target = FindClosestEnemy(tank);
 
-                if (target != nullptr)
-                {
-                    rockets.push_back(Rocket(tank.position, (target->Get_Position() - tank.position).normalized() * 3, rocket_radius, tank.allignment, ((tank.allignment == RED) ? &rocket_red : &rocket_blue)));
-                }
+                rockets.push_back(Rocket(tank.position, (target.Get_Position() - tank.position).normalized() * 3, rocket_radius, tank.allignment, ((tank.allignment == RED) ? &rocket_red : &rocket_blue)));
 
                 tank.Reload_Rocket();
+            }
+        }
+    }
+
+    for (Rocket& rocket : rockets)
+    {
+        rocket.Tick();
+        for (std::vector<Tank*>& collisions : grid.CollisionCheck(rocket))
+        {
+            for (Tank*& tank : collisions)
+            {
+                if (tank->allignment != rocket.allignment && tank->active && rocket.active)
+                {
+                    float distance_sqr = (tank->position - rocket.position).sqrLength();
+
+                    if (distance_sqr <= ((rocket.collision_radius * rocket.collision_radius) + (tank_radius * tank_radius)))
+                    {
+                        explosions.push_back(Explosion(&explosion, tank->position));
+
+                        if (tank->hit(ROCKET_HIT_VALUE))
+                        {
+                            smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
+                        }
+                        rocket.active = false;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -258,11 +266,6 @@ void Game::Update(float deltaTime)
             }
             MassCollisionCheck(unsorted, active, step * i, endIndex);
         }));
-    }
-
-    for (Rocket& rocket : rockets)
-    {
-        rocket.Tick();
     }
 
     for (Particle_beam& particle_beam : particle_beams)
