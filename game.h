@@ -62,6 +62,8 @@ class Game
     vector<Tank*> bluetanks;
     vector<Tank*> redtanks;
 
+    future<void> f1;
+
     Font* frame_count_font;
     long long frame_count = 0;
 
