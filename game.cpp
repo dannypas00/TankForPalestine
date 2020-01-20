@@ -200,6 +200,7 @@ void Game::Update(float deltaTime)
         unsorted.push_back(&tank);
         if (tank.active)
         {
+            grid.FillGrid(&tank);
             active.push_back(&tank);
             tank.Tick();
 
