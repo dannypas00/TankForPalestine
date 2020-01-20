@@ -34,10 +34,10 @@ class Tank
     void Push(vec2 direction, float magnitude);
 
     vec2 position;
+    vec2 gridPoint;
+    vec2 oldGridPoint;
     vec2 speed;
     vec2 target;
-
-    std::vector<Tank*> currentCell;
 
     int health;
 

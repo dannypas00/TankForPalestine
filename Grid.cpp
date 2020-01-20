@@ -1,15 +1,15 @@
 #include "precomp.h"
 
-std::vector<std::vector<vector<Tank*>>> GridVector;
-UINT16 cellSize;
-Grid::Grid::Grid(int width, int height, UINT16 cSize)
+namespace Tmpl8
 {
-    cellSize = cSize;
+std::vector<std::vector<vector<Tank*>>> GridVector;
+Grid::Grid(int width, int height)
+{
     std::vector<std::vector<vector<Tank*>>> xVector;
-    for (int x = (width / cSize) - 99; x >= 100; x--)
+    for (int x = (width / cellSize) - 99; x >= 100; x--)
     {
         std::vector<std::vector<Tank*>> yVector;
-        for (int y = (height / cSize) - 99; y >= 100; y--)
+        for (int y = (height / cellSize) - 99; y >= 100; y--)
         {
             yVector.push_back(std::vector<Tank*>());
         }
@@ -18,41 +18,39 @@ Grid::Grid::Grid(int width, int height, UINT16 cSize)
     GridVector = xVector;
 }
 
-void Grid::Grid::FillGrid(Tank* tank)
+void Grid::FillGrid(Tank* tank)
 {
     vec2 pos = GetGridPoint(tank->position);
     float x = pos.x - 1;
     float y = pos.y - 1;
     GridVector.at(x).at(y).push_back(tank);
-    tank->currentCell = GridVector.at(x).at(y);
 }
 
-vec2 Grid::Grid::GetGridPoint(vec2 position)
+vec2 Grid::GetGridPoint(vec2 position)
 {
-    return vec2(floor(position.x / cellSize) + 100, floor(position.y / cellSize) + 100);
+    return vec2(floor(position.x / 12) + 100, floor(position.y / 12) + 100);
 }
 
-std::vector<std::vector<Tank*>> Grid::Grid::CollisionCheck(Rocket& rocket)
+std::vector<std::vector<Tank*>*> Grid::CollisionCheck(Rocket& rocket)
 {
     vec2 gridPnt = GetGridPoint(rocket.position);
-    std::vector<std::vector<Tank*>> tanks;
+    std::vector<std::vector<Tank*>*> tanks;
     for (int i = -1; i <= 1; i++)
     {
         for (int j = -1; j <= 1; j++)
         {
             if (i + gridPnt.x >= 0 && j + gridPnt.y >= 0)
             {
-                std::vector<Tank*> tankVec = GridVector.at(i + gridPnt.x).at(j + gridPnt.y);
-                tanks.emplace_back(tankVec);
+                std::vector<Tank*>* tankVec = &GridVector.at(i + gridPnt.x).at(j + gridPnt.y);
+                tanks.push_back(tankVec);
             }
         }
     }
     return tanks;
 }
 
-Tank* Grid::Grid::FindNearestNeighbor(Tank* tank)
+Tank* Grid::FindNearestNeighbor(Tank* tank)
 {
-    std::vector<Tank*>& currentCell = tank->currentCell;
     std::vector<std::vector<Tank*>> todoCells;
     std::vector<std::vector<Tank*>> collideCells;
     int length = 0;
@@ -92,3 +90,15 @@ Tank* Grid::Grid::FindNearestNeighbor(Tank* tank)
     }
     return targetTank;
 }
+
+void Grid::ClearGrid()
+{
+    for (std::vector<std::vector<Tank*>> column : GridVector)
+    {
+        for (std::vector<Tank*> tanks : column)
+        {
+            tanks.clear();
+        }
+    }
+}
+} // namespace Tmpl8
