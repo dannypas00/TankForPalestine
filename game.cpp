@@ -52,6 +52,7 @@ const static vec2 rocket_size(25, 24);
 
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
+Grid grid = Grid(9999, 9999);
 
 namespace
 {
@@ -84,15 +85,19 @@ void Game::Init()
     for (int i = 0; i < NUM_TANKS_BLUE; i++)
     {
         Tank tank = Tank(start_blue_x + ((i % max_rows) * spacing), start_blue_y + ((i / max_rows) * spacing), BLUE, &tank_blue, &smoke, 1200, 600, tank_radius, TANK_MAX_HEALTH, TANK_MAX_SPEED);
+        tank.oldGridPoint = Grid::GetGridPoint(tank.position);
         tanks.push_back(tank);
         sorted.push_back(&tanks.back());
+        grid.FillGrid(&tank);
     }
     //Spawn red tanks
     for (int i = 0; i < NUM_TANKS_RED; i++)
     {
         Tank tank = Tank(start_red_x + ((i % max_rows) * spacing), start_red_y + ((i / max_rows) * spacing), RED, &tank_red, &smoke, 80, 80, tank_radius, TANK_MAX_HEALTH, TANK_MAX_SPEED);
+        tank.oldGridPoint = Grid::GetGridPoint(tank.position);
         tanks.push_back(tank);
         sorted.push_back(&tanks.back());
+        grid.FillGrid(&tank);
     }
 
     particle_beams.push_back(Particle_beam(vec2(SCRWIDTH / 2, SCRHEIGHT / 2), vec2(100, 50), &particle_beam_sprite, PARTICLE_BEAM_HIT_VALUE));
@@ -202,18 +207,13 @@ void Game::Update(float deltaTime)
             active.push_back(&tank);
             tank.Tick();
 
-            for (Rocket& rocket : rockets)
+            vec2& gridPoint = Grid::GetGridPoint(tank.position);
+            if (gridPoint.x != tank.oldGridPoint.x || gridPoint.y != tank.oldGridPoint.y)
             {
-                if (tank.allignment != rocket.allignment && rocket.Intersects(tank.position, tank_radius))
-                {
-                    explosions.push_back(Explosion(&explosion, tank.position));
-
-                    if (tank.hit(ROCKET_HIT_VALUE))
-                    {
-                        smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
-                    }
-                    rocket.active = false;
-                }
+                std::vector<Tank*>& oldGridTanks = grid.GridVector.at(tank.oldGridPoint.x).at(tank.oldGridPoint.y);
+                std::remove(oldGridTanks.begin(), oldGridTanks.end(), &tank);
+                grid.FillGrid(&tank);
+                tank.oldGridPoint = gridPoint;
             }
 
             for (Particle_beam& particle_beam : particle_beams)
@@ -237,7 +237,62 @@ void Game::Update(float deltaTime)
                 tank.Reload_Rocket();
             }
         }
+        else
+        {
+            vec2& gridPoint = Grid::GetGridPoint(tank.position);
+            std::vector<Tank*>& oldGridTanks = grid.GridVector.at(tank.oldGridPoint.x).at(tank.oldGridPoint.y);
+            std::remove(oldGridTanks.begin(), oldGridTanks.end(), &tank);
+        }
     }
+
+    int rocketStep = rockets.size() / threadCount;
+    for (int i = 0; i < threadCount; i++)
+    {
+        fut.emplace_back(pool.enqueue([&, i] {
+            int endIndex = (rocketStep * i) + rocketStep - 1;
+            if ((rocketStep * i) + rocketStep - 1 > rockets.size() - 1)
+            {
+                endIndex = rockets.size() - 1;
+            }
+            for (int j = (rocketStep * i); j < endIndex; j++)
+            {
+                Rocket& rocket = rockets.at(j);
+                rocket.Tick();
+                for (std::vector<Tank*>*& collisions : grid.CollisionCheck(rocket))
+                {
+                    for (Tank*& tank : *collisions)
+                    {
+                        if (tank->allignment != rocket.allignment && tank->active && rocket.active)
+                        {
+                            float distance_sqr = (tank->position - rocket.position).sqrLength();
+
+                            if (distance_sqr <= ((rocket.collision_radius * rocket.collision_radius) + (tank_radius * tank_radius)))
+                            {
+                                explosions.push_back(Explosion(&explosion, tank->position));
+
+                                if (tank->hit(ROCKET_HIT_VALUE))
+                                {
+                                    smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
+                                }
+                                rocket.active = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (rocket.position.x > 9999 || rocket.position.x < -100 || rocket.position.y > 9999 || rocket.position.y < -100)
+                {
+                    rocket.active = false;
+                    break;
+                }
+            }
+        }));
+    }
+    for (future<void>& f : fut)
+    {
+        f.wait();
+    }
+    fut.clear();
 
     int step = floor(active.size() / threadCount);
     Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
@@ -256,10 +311,6 @@ void Game::Update(float deltaTime)
     for (future<void>& f : fut)
     {
         f.wait();
-    }
-    for (Rocket& rocket : rockets)
-    {
-        rocket.Tick();
     }
 
     for (Particle_beam& particle_beam : particle_beams)
