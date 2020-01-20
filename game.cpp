@@ -5,6 +5,8 @@
 #include <sstream>
 #include <windows.h>
 
+
+
 #define NUM_TANKS_BLUE 1279
 #define NUM_TANKS_RED 1279
 
@@ -245,56 +247,44 @@ void Game::Update(float deltaTime)
         }
     }
 
-    int rocketStep = rockets.size() / threadCount;
-    for (int i = 0; i < threadCount; i++)
+    for (Rocket& rocket : rockets)
     {
-        fut.emplace_back(pool.enqueue([&, i] {
-            int endIndex = (rocketStep * i) + rocketStep - 1;
-            if ((rocketStep * i) + rocketStep - 1 > rockets.size() - 1)
+        rocket.Tick();
+        for (std::vector<Tank*>*& collisions : grid.CollisionCheck(rocket))
+        {
+            for (Tank*& tank : *collisions)
             {
-                endIndex = rockets.size() - 1;
-            }
-            for (int j = (rocketStep * i); j < endIndex; j++)
-            {
-                Rocket& rocket = rockets.at(j);
-                rocket.Tick();
-                for (std::vector<Tank*>*& collisions : grid.CollisionCheck(rocket))
+                if (tank->allignment != rocket.allignment && tank->active && rocket.active)
                 {
-                    for (Tank*& tank : *collisions)
+                    float distance_sqr = (tank->position - rocket.position).sqrLength();
+
+                    if (distance_sqr <= ((rocket.collision_radius * rocket.collision_radius) + (tank_radius * tank_radius)))
                     {
-                        if (tank->allignment != rocket.allignment && tank->active && rocket.active)
+                        explosions.push_back(Explosion(&explosion, tank->position));
+                        if (tank->hit(ROCKET_HIT_VALUE))
                         {
-                            float distance_sqr = (tank->position - rocket.position).sqrLength();
-
-                            if (distance_sqr <= ((rocket.collision_radius * rocket.collision_radius) + (tank_radius * tank_radius)))
-                            {
-                                explosions.push_back(Explosion(&explosion, tank->position));
-
-                                if (tank->hit(ROCKET_HIT_VALUE))
-                                {
-                                    smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
-                                }
-                                rocket.active = false;
-                                break;
-                            }
+                            smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
                         }
+                        rocket.active = false;
+                        break;
                     }
                 }
-                if (rocket.position.x > 9999 || rocket.position.x < -100 || rocket.position.y > 9999 || rocket.position.y < -100)
-                {
-                    rocket.active = false;
-                    break;
-                }
             }
-        }));
+        }
+        if (rocket.position.x > 9999 || rocket.position.x < -100 || rocket.position.y > 9999 || rocket.position.y < -100)
+        {
+            rocket.active = false;
+            break;
+        }
     }
+    //}));
     for (future<void>& f : fut)
     {
         f.wait();
     }
     fut.clear();
 
-    int step = floor(active.size() / threadCount);
+    int step = ceil(active.size() / threadCount);
     Mergesort::mergesort::poolXSort(unsorted, 0, unsorted.size() - 1, 1);
     Mergesort::mergesort::poolXSort(active, 0, active.size() - 1, 1);
     for (int i = 0; i < threadCount; i++) //Don't pass i by reference but by value
@@ -338,7 +328,6 @@ void Game::Update(float deltaTime)
 
 void Game::Draw()
 {
-    std::vector<future<void>> drawFut;
     // clear the graphics window
     screen->Clear(0);
 
@@ -346,134 +335,55 @@ void Game::Draw()
     background.Draw(screen, 0, 0);
 
     //Draw sprites
-    int tankStep = tanks.size() / threadCount;
-    for (int i = 0; i < threadCount; i++)
+    for (int i = 0; i < NUM_TANKS_BLUE + NUM_TANKS_RED; i++)
     {
-        drawFut.emplace_back(pool.enqueue([&, i] {
-            int endIndex = (tankStep * i) + tankStep - 1;
-            if (endIndex > tanks.size() - 1)
-            {
-                endIndex = tanks.size() - 1;
-            }
-            for (int j = (tankStep * i); j < endIndex; j++)
-            {
-                tanks.at(j).Draw(screen);
+        tanks.at(i).Draw(screen);
 
-                vec2 tPos = tanks.at(j).Get_Position();
-                // tread marks
-                if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
-                    background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
-            }
-        }));
+        vec2 tPos = tanks.at(i).Get_Position();
+        // tread marks
+        if ((tPos.x >= 0) && (tPos.x < SCRWIDTH) && (tPos.y >= 0) && (tPos.y < SCRHEIGHT))
+            background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH] = SubBlend(background.GetBuffer()[(int)tPos.x + (int)tPos.y * SCRWIDTH], 0x808080);
     }
-    for (future<void>& f : drawFut)
-    {
-        f.wait();
-    }
-    drawFut.clear();
 
-    int rocketStep = rockets.size() / threadCount;
-    for (int i = 0; i < threadCount; i++)
+    for (Rocket& rocket : rockets)
     {
-        drawFut.emplace_back(pool.enqueue([&, i] {
-            int endIndex = (rocketStep * i) + rocketStep - 1;
-            if (endIndex > rockets.size() - 1)
-            {
-                endIndex = rockets.size() - 1;
-            }
-            for (int j = (rocketStep * i); j < endIndex; j++)
-            {
-                rockets.at(j).Draw(screen);
-            }
-        }));
+        rocket.Draw(screen);
     }
-    for (future<void>& f : drawFut)
-    {
-        f.wait();
-    }
-    drawFut.clear();
 
-    int smokeStep = smokes.size() / threadCount;
-    for (int i = 0; i < threadCount; i++)
+    for (Smoke& smoke : smokes)
     {
-        drawFut.emplace_back(pool.enqueue([&, i] {
-            int endIndex = (smokeStep * i) + smokeStep - 1;
-            if (endIndex > smokes.size() - 1)
-            {
-                endIndex = smokes.size() - 1;
-            }
-            for (int j = (smokeStep * i); j < endIndex; j++)
-            {
-                smokes.at(j).Draw(screen);
-            }
-        }));
+        smoke.Draw(screen);
     }
-    for (future<void>& f : drawFut)
-    {
-        f.wait();
-    }
-    drawFut.clear();
 
     for (Particle_beam& particle_beam : particle_beams)
     {
-        drawFut.emplace_back(pool.enqueue([&] {
-            particle_beam.Draw(screen);
-        }));
+        particle_beam.Draw(screen);
     }
-    for (future<void>& f : drawFut)
-    {
-        f.wait();
-    }
-    drawFut.clear();
 
-    int explosionStep = explosions.size() / threadCount;
-    for (int i = 0; i < threadCount; i++)
+    for (Explosion& explosion : explosions)
     {
-        drawFut.emplace_back(pool.enqueue([&, i] {
-            int endIndex = (explosionStep * i) + explosionStep - 1;
-            if (endIndex > explosions.size() - 1)
-            {
-                endIndex = explosions.size() - 1;
-            }
-            for (int j = (explosionStep * i); j < endIndex; j++)
-            {
-                explosions.at(j).Draw(screen);
-            }
-        }));
+        explosion.Draw(screen);
     }
-    for (future<void>& f : drawFut)
-    {
-        f.wait();
-    }
-    drawFut.clear();
 
     //Draw sorted health bars
     for (int t = 0; t < 2; t++)
     {
-        drawFut.emplace_back(pool.enqueue([&, t] {
-            const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
-            const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
+        const UINT16 NUM_TANKS = ((t < 1) ? NUM_TANKS_BLUE : NUM_TANKS_RED);
 
-            //Mergesort::mergesort::sortHealth(sorted, begin, begin + NUM_TANKS - 1);
-            Mergesort::mergesort::poolHealthSort(sorted, begin, begin + NUM_TANKS - 1, 1);
+        const UINT16 begin = ((t < 1) ? 0 : NUM_TANKS_BLUE);
+        Mergesort::mergesort::poolHealthSort(sorted, begin, begin + NUM_TANKS - 1, 1);
 
-            for (int i = 0; i < NUM_TANKS; i++)
-            {
-                int health_bar_start_x = i * (HEALTH_BAR_WIDTH + HEALTH_BAR_SPACING) + HEALTH_BARS_OFFSET_X;
-                int health_bar_start_y = (t < 1) ? 0 : (SCRHEIGHT - HEALTH_BAR_HEIGHT) - 1;
-                int health_bar_end_x = health_bar_start_x + HEALTH_BAR_WIDTH;
-                int health_bar_end_y = (t < 1) ? HEALTH_BAR_HEIGHT : SCRHEIGHT - 1;
+        for (int i = 0; i < NUM_TANKS; i++)
+        {
+            int health_bar_start_x = i * (HEALTH_BAR_WIDTH + HEALTH_BAR_SPACING) + HEALTH_BARS_OFFSET_X;
+            int health_bar_start_y = (t < 1) ? 0 : (SCRHEIGHT - HEALTH_BAR_HEIGHT) - 1;
+            int health_bar_end_x = health_bar_start_x + HEALTH_BAR_WIDTH;
+            int health_bar_end_y = (t < 1) ? HEALTH_BAR_HEIGHT : SCRHEIGHT - 1;
 
-                screen->Bar(health_bar_start_x, health_bar_start_y, health_bar_end_x, health_bar_end_y, REDMASK);
-                screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted[begin + i]->health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
-            }
-        }));
+            screen->Bar(health_bar_start_x, health_bar_start_y, health_bar_end_x, health_bar_end_y, REDMASK);
+            screen->Bar(health_bar_start_x, health_bar_start_y + (int)((double)HEALTH_BAR_HEIGHT * (1 - ((double)sorted.at(i)->health / (double)TANK_MAX_HEALTH))), health_bar_end_x, health_bar_end_y, GREENMASK);
+        }
     }
-    for (future<void>& f : drawFut)
-    {
-        f.wait();
-    }
-    drawFut.clear();
 }
 
 // -----------------------------------------------------------
