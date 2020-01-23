@@ -16,6 +16,7 @@ void Rocket::Tick()
 {
     position += speed;
     if (++current_frame > 8) current_frame = 0;
+    if (position.x > 9899 || position.x < -100 || position.y > 9899 || position.y < -100) active = false;
 }
 
 //Draw the sprite with the facing based on this rockets movement direction
