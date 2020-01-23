@@ -5,8 +5,6 @@
 #include <sstream>
 #include <windows.h>
 
-
-
 #define NUM_TANKS_BLUE 1279
 #define NUM_TANKS_RED 1279
 
@@ -26,7 +24,7 @@
 //Global performance timer
 //REF_PERFORMANCE NICK: 57137.9
 //REF_PERFORMANCE DANNY: 60245.9
-#define REF_PERFORMANCE 57137.9 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
+#define REF_PERFORMANCE 58849.8 //UPDATE THIS WITH YOUR REFERENCE PERFORMANCE (see console after 2k frames)
 static timer perf_timer;
 static float duration;
 
@@ -55,6 +53,7 @@ const static vec2 rocket_size(25, 24);
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
 Grid grid = Grid(9999, 9999);
+std::mutex hitLock;
 
 namespace
 {
@@ -203,6 +202,11 @@ void Game::Update(float deltaTime)
     //Update tanks
     for (Tank& tank : tanks)
     {
+        if (tank.health <= 0 && tank.active)
+        {
+            smokes.push_back(Smoke(smoke, tank.position - vec2(0, 48)));
+            tank.Deactivate();
+        }
         unsorted.push_back(&tank);
         if (tank.active)
         {
@@ -247,37 +251,46 @@ void Game::Update(float deltaTime)
         }
     }
 
-    for (Rocket& rocket : rockets)
+    int rocketStep = ceil(rockets.size() / threadCount);
+    for (int i = 0; i < threadCount; i++)
     {
-        rocket.Tick();
-        for (std::vector<Tank*>*& collisions : grid.CollisionCheck(rocket))
-        {
-            for (Tank*& tank : *collisions)
+        fut.emplace_back(pool.enqueue([&, i] {
+            int endIndex = (rocketStep * i) + rocketStep - 1;
+            if ((rocketStep * i) + rocketStep - 1 > rockets.size() - 1)
             {
-                if (tank->allignment != rocket.allignment && tank->active && rocket.active)
+                endIndex = rockets.size() - 1;
+            }
+            for (int j = i * rocketStep; j <= endIndex; j++)
+            {
+                Rocket& rocket = rockets.at(j);
+                rocket.Tick();
+                for (std::vector<Tank*>*& collisions : grid.CollisionCheck(rocket))
                 {
-                    float distance_sqr = (tank->position - rocket.position).sqrLength();
-
-                    if (distance_sqr <= ((rocket.collision_radius * rocket.collision_radius) + (tank_radius * tank_radius)))
+                    for (Tank*& tank : *collisions)
                     {
-                        explosions.push_back(Explosion(&explosion, tank->position));
-                        if (tank->hit(ROCKET_HIT_VALUE))
+                        if (tank->allignment != rocket.allignment && tank->active && rocket.active && tank->health > 0)
                         {
-                            smokes.push_back(Smoke(smoke, tank->position - vec2(0, 48)));
+                            float distance_sqr = (tank->position - rocket.position).sqrLength();
+
+                            if (distance_sqr <= ((rocket.collision_radius * rocket.collision_radius) + (tank_radius * tank_radius)))
+                            {
+                                std::lock_guard<std::mutex> lock(hitLock);
+                                explosions.push_back(Explosion(&explosion, tank->position));
+                                tank->hit(ROCKET_HIT_VALUE);
+                                rocket.active = false;
+                                break;
+                            }
                         }
-                        rocket.active = false;
-                        break;
                     }
                 }
+                if (rocket.position.x > 9999 || rocket.position.x < -100 || rocket.position.y > 9999 || rocket.position.y < -100)
+                {
+                    rocket.active = false;
+                    break;
+                }
             }
-        }
-        if (rocket.position.x > 9999 || rocket.position.x < -100 || rocket.position.y > 9999 || rocket.position.y < -100)
-        {
-            rocket.active = false;
-            break;
-        }
+        }));
     }
-    //}));
     for (future<void>& f : fut)
     {
         f.wait();
