@@ -52,6 +52,7 @@ const static vec2 rocket_size(25, 24);
 
 const static float tank_radius = 12.f;
 const static float rocket_radius = 10.f;
+
 Grid grid = Grid(9999, 9999);
 std::mutex hitLock;
 
@@ -137,6 +138,10 @@ Tank& Game::FindClosestEnemy(Tank& current_tank)
     return tanks.at(closest_index);
 }
 
+
+// -----------------------------------------------------------
+// Collision detection by implementing a custom hyperplane seperation algorithm
+// -----------------------------------------------------------
 void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, std::vector<Tank*>& activeTanks, int beginT, int endT)
 {
     std::vector<Tank*> stepTanks(&activeTanks[beginT], &activeTanks[endT]);
@@ -186,10 +191,6 @@ void Game::MassCollisionCheck(std::vector<Tank*>& sortedTanks, std::vector<Tank*
 
 // -----------------------------------------------------------
 // Update the game state:
-// Move all objects
-// Update sprite frames
-// Collision detection
-// Targeting etc..
 // -----------------------------------------------------------
 void Game::Update(float deltaTime)
 {
@@ -213,6 +214,9 @@ void Game::Update(float deltaTime)
             active.push_back(&tank);
             tank.Tick();
 
+            // -----------------------------------------------------------
+            // Rocket intersection by filling a grid with tanks
+            // -----------------------------------------------------------
             vec2& gridPoint = Grid::GetGridPoint(tank.position);
             if (gridPoint.x != tank.oldGridPoint.x || gridPoint.y != tank.oldGridPoint.y)
             {
